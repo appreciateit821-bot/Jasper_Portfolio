@@ -358,3 +358,5 @@ button:focus-visible, a:focus-visible { outline-offset: 5px; }
 .archive-item [hidden] { display:none; }
 @media(max-width:700px){.painting-contact-sheet{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.painting-contact-sheet img{height:95px}.acting-channel-card{min-height:300px}.hero-finish{right:18px;bottom:85px}.venture-index-social{margin-right:22px}}
 @media(prefers-reduced-motion:reduce){.hero-painting{animation:none!important}.hero-painting-1{opacity:0}.hero-painting-3{opacity:1}.painting-contact-sheet img{transition:none}}
+
+.profile-overview{display:grid;grid-template-columns:minmax(180px,260px) 1fr;align-items:center;gap:clamp(28px,5vw,80px);margin:40px 0 60px}.profile-portrait{margin:0}.profile-portrait img{width:100%;height:auto;display:block}.profile-overview .brand-intro{display:flex;flex-direction:column;align-items:flex-start;gap:28px;margin:0}.profile-overview .brand-intro>p{font-size:clamp(36px,5vw,72px)}@media(max-width:700px){.profile-overview{grid-template-columns:1fr}.profile-portrait{max-width:200px}}
