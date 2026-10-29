@@ -372,6 +372,7 @@ button:focus-visible, a:focus-visible { outline-offset: 5px; }
 .art-youtube-load img{max-width:100%;max-height:calc(100dvh - 350px);object-fit:contain}
 .art-youtube-load span{font-size:16px}
 .art-original-text{max-width:38em;margin:auto;padding:clamp(12px,3vw,40px);font-size:18px;line-height:1.95;white-space:pre-wrap;overflow-wrap:anywhere;text-align:left}
+.art-dialog .art-layout #art-visual[data-media-type=text]{height:auto;min-height:0;overflow:visible}
 .art-dialog .art-layout #art-visual.has-gallery>img{height:calc(100% - 58px)}
 .art-dialog .art-layout #art-visual.has-gallery.is-zoomed>img{height:auto}
 .art-image-pagination{position:sticky;bottom:-24px;display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:6px 0;background:#efefef;font-size:13px}
