@@ -41,12 +41,16 @@
   const nextWork = document.getElementById('art-next');
   let workSequence = ['painting', 'acting', 'writing'];
   let activeWork = 0;
-  const paintings = window.JASPER_ARTWORKS || [];
+  const catalog = window.JASPER_ARTWORKS || [];
+  const paintings = catalog.filter(work => work.kind === 'painting');
+  const counts = Object.fromEntries(['painting', 'acting', 'writing'].map(kind => [kind, catalog.filter(work => work.kind === kind).length]));
   const works = {
-    ...Object.fromEntries(paintings.map(work => [work.id, work])),
-    acting: { kind: 'acting', type: 'ACTING & FILM', title: '연기와 장면', description: '공부하고 훈련하며, 다양한 장면 속에서 표현을 시도합니다. 연기 기록은 유튜브 채널에서 볼 수 있습니다.', link: 'https://www.youtube.com/@life_by_play', linkLabel: 'YouTube에서 연기 기록 보기' },
-    writing: { kind: 'writing', type: 'WORDS & NOTES', title: '창작글과 기록', description: '인스타그램에 남긴 창작글과 기록을 이곳에 정리하고 있습니다. 원문은 개인 계정에서 확인할 수 있습니다.', link: 'https://www.instagram.com/KDH_SMILE/', linkLabel: 'Instagram에서 원문 보기' }
+    acting: { kind: 'acting', type: 'ACTING & FILM', title: '연기와 장면', description: '연기 영상의 원본을 이곳에 정리하고 있습니다. 유튜브 채널에서도 기록을 확인할 수 있습니다.', link: 'https://www.youtube.com/@life_by_play', linkLabel: 'YouTube에서 연기 기록 보기' },
+    writing: { kind: 'writing', type: 'WORDS & NOTES', title: '창작글과 기록', description: '인스타그램에 남긴 창작글과 기록을 이곳에 정리하고 있습니다. 원문은 개인 계정에서 확인할 수 있습니다.', link: 'https://www.instagram.com/KDH_SMILE/', linkLabel: 'Instagram에서 원문 보기' },
+    ...Object.fromEntries(catalog.map(work => [work.id, work]))
   };
+  const mediumKeys = Object.fromEntries(['painting', 'acting', 'writing'].map(kind => [kind, catalog.find(work => work.kind === kind)?.id || kind]));
+  const countLabel = kind => `${counts[kind]}${kind === 'acting' ? '편' : kind === 'writing' ? '개' : '점'}`;
 
   // Selecting a medium changes the preview immediately; animation never delays navigation.
   const expressionLayout = document.getElementById('expression-layout');
@@ -56,23 +60,41 @@
   if (expressionLayout && expressionVisual) {
     const choices = [...expressionLayout.querySelectorAll('button[data-expression]')];
     const panels = [...expressionVisual.querySelectorAll('[data-expression-panel]')];
+    panels.forEach(panel => {
+      const work = works[mediumKeys[panel.dataset.expressionPanel]];
+      const imagePath = work?.image || work?.poster;
+      if (imagePath) {
+        const image = new Image();
+        image.src = imagePath;
+        image.alt = work.alt || work.title;
+        image.loading = 'lazy';
+        panel.replaceChildren(image);
+      } else if (work?.mediaType === 'text') {
+        const excerpt = document.createElement('span');
+        excerpt.className = 'archive-text-preview';
+        excerpt.textContent = work.text.length > 260 ? work.text.slice(0, 260) + '…' : work.text;
+        panel.replaceChildren(excerpt);
+      }
+    });
+    expressionVisual.dataset.art = mediumKeys[expressionLayout.dataset.expression];
     choices.forEach(button => button.addEventListener('click', () => {
       const key = button.dataset.expression;
-      if (!works[key] || expressionLayout.dataset.expression === key) return;
+      const work = works[mediumKeys[key]];
+      if (!work || expressionLayout.dataset.expression === key) return;
       const direction = choices.indexOf(button) > choices.findIndex(choice => choice.getAttribute('aria-pressed') === 'true') ? 1 : -1;
       expressionAnimation?.cancel();
       expressionLayout.dataset.expression = key;
       expressionLayout.style.setProperty('--active-medium', String(choices.indexOf(button)));
       choices.forEach(choice => choice.setAttribute('aria-pressed', String(choice === button)));
       panels.forEach(panel => { panel.hidden = panel.dataset.expressionPanel !== key; });
-      expressionVisual.dataset.art = key;
+      expressionVisual.dataset.art = mediumKeys[key];
       expressionVisual.setAttribute('aria-label', `${expressionNames[key]} 자세히 보기`);
       document.getElementById('expression-stage').setAttribute('aria-label', `${expressionNames[key]} 미리보기`);
-      document.getElementById('expression-edition').textContent = works[key].type;
+      document.getElementById('expression-edition').textContent = work.type;
       document.getElementById('expression-title').textContent = expressionNames[key];
-      document.getElementById('expression-note').textContent = key === 'acting'
-        ? 'YouTube에서 연기 기록 보기'
-        : key === 'writing' ? '원문 수집·정리 중' : `직접 그린 회화 ${paintings.length}점`;
+      document.getElementById('expression-note').textContent = counts[key]
+        ? `${expressionNames[key]} ${countLabel(key)}`
+        : key === 'acting' ? 'YouTube에서 연기 기록 보기' : '원문 수집·정리 중';
       expressionVisual.style.removeProperty('--preview-x');
       expressionVisual.style.removeProperty('--preview-y');
       if (!motionPaused) {
@@ -114,41 +136,148 @@
     if (zoomed) artVisual.focus({ preventScroll: true });
     if (!zoomed) resetArtZoom();
   });
-  artDialog.addEventListener('close', resetArtZoom);
+  function stopArtMedia() {
+    artVisual.querySelectorAll('video,audio').forEach(media => {
+      media.pause();
+      media.removeAttribute('src');
+      media.load();
+    });
+    artVisual.querySelectorAll('iframe').forEach(frame => frame.remove());
+  }
+  function pauseArtMedia() {
+    artVisual.querySelectorAll('video,audio').forEach(media => media.pause());
+    artVisual.querySelectorAll('iframe').forEach(frame => {
+      frame.src = frame.src.replace('autoplay=1', 'autoplay=0');
+    });
+  }
+  artDialog.addEventListener('close', () => { stopArtMedia(); resetArtZoom(); });
+  window.addEventListener('pagehide', stopArtMedia);
+
+  function renderImage(work) {
+    const frames = work.galleryImages?.length ? work.galleryImages : [work];
+    let frameIndex = 0;
+    const image = new Image();
+    artVisual.append(image);
+    artVisual.classList.toggle('has-gallery', frames.length > 1);
+    let previousImage, nextImage, position;
+    function selectFrame(index) {
+      frameIndex = index;
+      resetArtZoom();
+      const frame = frames[frameIndex];
+      image.src = frame.image;
+      image.alt = frame.alt || work.alt || work.title;
+      if (frame.width) image.width = frame.width;
+      if (frame.height) image.height = frame.height;
+      if (position) {
+        position.textContent = `이미지 ${frameIndex + 1} / ${frames.length}`;
+        previousImage.disabled = frameIndex === 0;
+        nextImage.disabled = frameIndex === frames.length - 1;
+      }
+    }
+    if (frames.length > 1) {
+      const controls = document.createElement('div');
+      controls.className = 'art-image-pagination';
+      controls.setAttribute('role', 'group');
+      controls.setAttribute('aria-label', '이 작품의 다른 이미지');
+      previousImage = document.createElement('button');
+      nextImage = document.createElement('button');
+      position = document.createElement('span');
+      position.setAttribute('aria-live', 'polite');
+      previousImage.type = nextImage.type = 'button';
+      previousImage.textContent = '이전 이미지';
+      nextImage.textContent = '다음 이미지';
+      previousImage.addEventListener('click', () => selectFrame(frameIndex - 1));
+      nextImage.addEventListener('click', () => selectFrame(frameIndex + 1));
+      controls.append(previousImage, position, nextImage);
+      artVisual.append(controls);
+    }
+    selectFrame(0);
+  }
+
+  function renderMedia(work) {
+    artVisual.classList.remove('has-gallery');
+    artVisual.dataset.mediaType = work.mediaType || 'placeholder';
+    if (work.mediaType === 'video') {
+      const video = document.createElement('video');
+      video.controls = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+      video.src = work.video;
+      if (work.poster) video.poster = work.poster;
+      video.setAttribute('aria-label', work.title);
+      video.textContent = '브라우저에서 이 영상을 재생할 수 없습니다.';
+      artVisual.append(video);
+      const directLink = document.createElement('a');
+      directLink.className = 'art-media-direct';
+      directLink.href = work.video;
+      directLink.target = '_blank';
+      directLink.rel = 'noopener noreferrer';
+      directLink.textContent = '영상 파일 열기';
+      artVisual.append(directLink);
+    } else if (work.mediaType === 'youtube' && /^[A-Za-z0-9_-]{11}$/.test(work.youtubeId)) {
+      const player = document.createElement('button');
+      player.className = 'art-youtube-load';
+      player.type = 'button';
+      if (work.poster) {
+        const poster = new Image();
+        poster.src = work.poster;
+        poster.alt = '';
+        player.append(poster);
+      }
+      const label = document.createElement('span');
+      label.textContent = `${work.title} 재생`;
+      player.append(label);
+      player.addEventListener('click', () => {
+        const frame = document.createElement('iframe');
+        frame.src = `https://www.youtube-nocookie.com/embed/${work.youtubeId}?autoplay=1`;
+        frame.title = work.title;
+        frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+        frame.allowFullscreen = true;
+        frame.referrerPolicy = 'strict-origin-when-cross-origin';
+        player.replaceWith(frame);
+        frame.focus();
+      }, {once: true});
+      artVisual.append(player);
+    } else if (work.mediaType === 'text') {
+      const original = document.createElement('article');
+      original.className = 'art-original-text';
+      original.setAttribute('aria-label', `${work.title} 원문`);
+      original.textContent = work.text;
+      artVisual.append(original);
+    } else if (work.image) {
+      renderImage(work);
+    } else {
+      const title = document.createElement('div');
+      title.className = 'writing-dialog-visual';
+      title.textContent = work.kind === 'acting' ? 'Acting & film' : 'Words & notes';
+      artVisual.append(title);
+    }
+  }
 
   function showWork(key, sourceButton) {
       const work = works[key];
       if (!work) return;
       const sourceImage = sourceButton?.querySelector('[data-expression-panel]:not([hidden]) img') || sourceButton?.querySelector('img');
       const sourceBounds = sourceImage?.getBoundingClientRect();
+      stopArtMedia();
       resetArtZoom();
       if (artZoom) {
         artZoom.hidden = !work.image;
         artZoom.disabled = !work.image;
       }
       if (artFollow) {
-        artFollow.href = work.link || 'https://www.instagram.com/jasperkim_official/';
-        artFollow.querySelector('span').textContent = work.linkLabel || 'Instagram에서 그림 기록 보기';
+        const fallbackLink = work.kind === 'acting' ? 'https://www.youtube.com/@life_by_play'
+          : work.kind === 'writing' ? 'https://www.instagram.com/KDH_SMILE/' : 'https://www.instagram.com/jasperkim_official/';
+        artFollow.href = work.link || fallbackLink;
+        artFollow.querySelector('span').textContent = work.linkLabel || (work.link ? '원문 출처 보기' : work.kind === 'acting' ? 'YouTube에서 연기 기록 보기' : work.kind === 'writing' ? 'Instagram에서 기록 보기' : 'Instagram에서 그림 기록 보기');
       }
       activeWork = workSequence.indexOf(key);
-      artDialog.classList.toggle('dark', key === 'acting');
+      artDialog.classList.toggle('dark', work.kind === 'acting');
       document.getElementById('art-type').textContent = work.type;
       document.getElementById('art-title').textContent = work.title;
       document.getElementById('art-description').textContent = work.description;
       artVisual.replaceChildren();
-      if (work.image) {
-        const image = new Image();
-        image.src = work.image;
-        image.alt = work.alt;
-        image.width = work.width;
-        image.height = work.height;
-        artVisual.append(image);
-      } else {
-        const title = document.createElement('div');
-        title.className = 'writing-dialog-visual';
-        title.textContent = work.kind === 'acting' ? 'Acting & film' : 'Words & notes';
-        artVisual.append(title);
-      }
+      renderMedia(work);
       previousWork.disabled = activeWork === 0;
       nextWork.disabled = activeWork === workSequence.length - 1;
       document.getElementById('art-position').textContent = `${activeWork + 1} / ${workSequence.length}`;
@@ -176,7 +305,7 @@
     button.addEventListener('click', () => {
       workSequence = button.closest('#archive-dialog')
         ? [...archiveItems.querySelectorAll('[data-art]')].filter(item => !item.hidden).map(item => item.dataset.art)
-        : Object.keys(works);
+        : catalog.some(work => work.id === button.dataset.art) ? catalog.map(work => work.id) : [button.dataset.art];
       showWork(button.dataset.art, button);
     });
   });
@@ -191,6 +320,7 @@
   nextWork.addEventListener('click', () => moveWork(1));
   artDialog.addEventListener('keydown', event => {
     if (artVisual.classList.contains('is-zoomed') || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (event.target.closest('video,audio,iframe,.art-image-pagination')) return;
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     moveWork(event.key === 'ArrowLeft' ? -1 : 1);
@@ -211,7 +341,8 @@
       document.querySelectorAll('[data-filter]').forEach(item => {
         item.setAttribute('aria-pressed', String(item === button));
       });
-      archiveStatus.textContent = `${button.textContent} · ${count}점${count ? "" : " · 자료 정리 중"}`;
+      const unit = kind === 'acting' ? '편' : kind === 'writing' || kind === 'all' ? '개' : '점';
+      archiveStatus.textContent = `${button.textContent} · ${count}${unit}${count ? "" : " · 자료 정리 중"}`;
     });
   });
   document.querySelectorAll('[data-view]').forEach(button => {
@@ -277,6 +408,7 @@
   purpose.addEventListener('change', () => setPurpose(purpose.value));
   document.querySelectorAll('[data-connect]').forEach(button => {
     button.addEventListener('click', () => {
+      if (artDialog.open) pauseArtMedia();
       setPurpose(button.dataset.connect);
       if (button.dataset.brand) brand.value = button.dataset.brand;
       connectDialog.showModal();
@@ -299,6 +431,7 @@
   function dismissDialog(dialog) {
     if (closingDialogs.has(dialog)) return closingDialogs.get(dialog);
     if (!dialog.open) return Promise.resolve();
+    if (dialog === artDialog) stopArtMedia();
     if (motionPaused) {
       dialog.close();
       return Promise.resolve();
