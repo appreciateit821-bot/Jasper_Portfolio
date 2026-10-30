@@ -118,6 +118,23 @@
     }));
   }
 
+  // Each room reveals in its own visual language; scrolling remains native.
+  const roomObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      roomObserver.unobserve(entry.target);
+      if (motionPaused) return;
+      const kind = entry.target.dataset.room;
+      const items = entry.target.querySelectorAll(kind === 'painting' ? '.wall-work' : kind === 'acting' ? '.screen-feature,.scene-row' : '.reading-row');
+      items.forEach((item, i) => item.animate(kind === 'painting'
+        ? [{opacity:0,transform:'translateY(35px)'},{opacity:1,transform:'none'}]
+        : kind === 'acting' ? [{opacity:.2,clipPath:'inset(15% 0)'},{opacity:1,clipPath:'inset(0)'}]
+        : [{opacity:0,transform:'translateX(18px)'},{opacity:1,transform:'none'}],
+        {duration:kind === 'painting' ? 900 : 650,delay:Math.min(i,5)*65,easing:'cubic-bezier(.16,1,.3,1)'}));
+    });
+  },{threshold:.12});
+  document.querySelectorAll('[data-room]').forEach(room => roomObserver.observe(room));
+
   function resetArtZoom() {
     artVisual.classList.remove('is-zoomed');
     artVisual.scrollTop = 0;
@@ -154,7 +171,9 @@
   window.addEventListener('pagehide', stopArtMedia);
 
   function renderImage(work) {
-    const frames = work.galleryImages?.length ? work.galleryImages : [work];
+    const originals = work.galleryImages?.length ? work.galleryImages : [work];
+    const frames = originals;
+    let exhibition = !!work.presentationImage;
     let frameIndex = 0;
     const image = new Image();
     artVisual.append(image);
@@ -164,7 +183,7 @@
       frameIndex = index;
       resetArtZoom();
       const frame = frames[frameIndex];
-      image.src = frame.image;
+      image.src = exhibition ? work.presentationImage : frame.image;
       image.alt = frame.alt || work.alt || work.title;
       if (frame.width) image.width = frame.width;
       if (frame.height) image.height = frame.height;
@@ -191,6 +210,25 @@
       controls.append(previousImage, position, nextImage);
       artVisual.append(controls);
     }
+    if (work.presentationImage) {
+      const controls = document.createElement('div');
+      controls.className = 'presentation-controls';
+      const buttons = ['전시 연출', '원본 사진'].map((label, index) => {
+        const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+        button.setAttribute('aria-pressed', String(index === 0));
+        button.addEventListener('click', () => {
+          exhibition = index === 0;
+          buttons.forEach((item, i) => item.setAttribute('aria-pressed', String(i === index)));
+          if (pagination) pagination.hidden = exhibition;
+          selectFrame(frameIndex);
+        }); return button;
+      });
+      const note = document.createElement('small'); note.textContent = 'AI 배경 편집본 · 실제 작품의 색과 붓질은 원본 사진을 참고해주세요.';
+      controls.append(...buttons, note);
+      artVisual.parentElement.insertBefore(controls, artVisual);
+    }
+    const pagination = artVisual.querySelector('.art-image-pagination');
+    if (pagination) pagination.hidden = exhibition;
     selectFrame(0);
   }
 
@@ -272,6 +310,11 @@
         artFollow.querySelector('span').textContent = work.linkLabel || (work.link ? '원문 출처 보기' : work.kind === 'acting' ? 'YouTube에서 연기 기록 보기' : work.kind === 'writing' ? 'Instagram에서 기록 보기' : 'Instagram에서 그림 기록 보기');
       }
       activeWork = workSequence.indexOf(key);
+      const layout = artDialog.querySelector('.art-layout');
+      const copy = layout.querySelector('.art-copy');
+      if (work.kind === 'writing') layout.prepend(copy); else layout.append(copy);
+      artDialog.dataset.kind = work.kind;
+      artDialog.querySelector('.presentation-controls')?.remove();
       artDialog.classList.toggle('dark', work.kind === 'acting');
       document.getElementById('art-type').textContent = work.type;
       document.getElementById('art-title').textContent = work.title;
@@ -293,7 +336,7 @@
             { transformOrigin: '0 0', transform: 'none', opacity: 1 }
           ], { duration: 520, easing: 'cubic-bezier(.16,1,.3,1)' });
         } else {
-          artVisual.animate([
+          artVisual.animate(work.kind === 'writing' ? [{opacity: 0, transform: 'translateY(16px)'}, {opacity: 1, transform: 'none'}] : [
             { opacity: .15, clipPath: 'inset(8% 0 8% 0)', transform: 'scale(.97)' },
             { opacity: 1, clipPath: 'inset(0)', transform: 'none' }
           ], { duration: 520, easing: 'cubic-bezier(.16,1,.3,1)' });
@@ -305,7 +348,7 @@
     button.addEventListener('click', () => {
       workSequence = button.closest('#archive-dialog')
         ? [...archiveItems.querySelectorAll('[data-art]')].filter(item => !item.hidden).map(item => item.dataset.art)
-        : catalog.some(work => work.id === button.dataset.art) ? catalog.map(work => work.id) : [button.dataset.art];
+        : catalog.some(work => work.id === button.dataset.art) ? catalog.filter(work => work.kind === works[button.dataset.art].kind).map(work => work.id) : [button.dataset.art];
       showWork(button.dataset.art, button);
     });
   });
@@ -320,14 +363,18 @@
   nextWork.addEventListener('click', () => moveWork(1));
   artDialog.addEventListener('keydown', event => {
     if (artVisual.classList.contains('is-zoomed') || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (event.target.closest('video,audio,iframe,.art-image-pagination')) return;
+    if (event.target.closest('video,audio,iframe,.art-image-pagination,.presentation-controls')) return;
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     moveWork(event.key === 'ArrowLeft' ? -1 : 1);
   });
 
   document.querySelectorAll('[data-open-archive]').forEach(button => {
-    button.addEventListener('click', () => archiveDialog.showModal());
+    button.addEventListener('click', () => {
+      const kind = button.dataset.openArchive || 'all';
+      document.querySelector(`[data-filter="${kind}"]`)?.click();
+      archiveDialog.showModal();
+    });
   });
   document.querySelectorAll('[data-filter]').forEach(button => {
     button.addEventListener('click', () => {
