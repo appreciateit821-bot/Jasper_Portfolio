@@ -50,7 +50,7 @@
     ...Object.fromEntries(catalog.map(work => [work.id, work]))
   };
   const mediumKeys = Object.fromEntries(['painting', 'acting', 'writing'].map(kind => [kind, catalog.find(work => work.kind === kind)?.id || kind]));
-  const countLabel = kind => `${counts[kind]}${kind === 'acting' ? '편' : kind === 'writing' ? '개' : '점'}`;
+  const countLabel = kind => `${counts[kind]}${kind === 'acting' ? '편' : kind === 'writing' ? '편' : '점'}`;
 
   // Selecting a medium changes the preview immediately; animation never delays navigation.
   const expressionLayout = document.getElementById('expression-layout');
@@ -321,6 +321,16 @@
       document.getElementById('art-description').textContent = work.description;
       artVisual.replaceChildren();
       renderMedia(work);
+      if (work.kind === 'writing') {
+        const end = document.createElement('nav');
+        end.className = 'reading-end'; end.setAttribute('aria-label', '글 끝에서 이동');
+        for (const [label, offset] of [['이전 글', -1], ['다음 글', 1]]) {
+          const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+          button.disabled = !workSequence[activeWork + offset];
+          button.addEventListener('click', () => showWork(workSequence[activeWork + offset])); end.append(button);
+        }
+        artVisual.append(end);
+      }
       previousWork.disabled = activeWork === 0;
       nextWork.disabled = activeWork === workSequence.length - 1;
       document.getElementById('art-position').textContent = `${activeWork + 1} / ${workSequence.length}`;
