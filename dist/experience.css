@@ -546,3 +546,19 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
   .portrait-thumbnails { grid-column:2; grid-row:2; flex-wrap:wrap; overflow:auto; }
   .portrait-controls { grid-column:2; grid-row:3; width:100%; }
 }
+.actor-profile-facts { margin:0 0 24px; }
+.actor-profile-facts p { margin:8px 0; font-size:15px; line-height:1.8; }
+.actor-profile-facts small { color:#aaa; font-size:12px; letter-spacing:0; }
+.career-journey { display:grid; grid-template-columns:1fr 1fr; margin:48px 0 44px; gap:6%; }
+.career-journey article { border-top:1px solid #080808; padding-top:24px; }
+.career-journey article>span { font-size:13px; }
+.career-journey h3 { font-family:var(--korean-serif); font-size:clamp(24px,3vw,36px); font-weight:400; line-height:1.6; margin:24px 0 16px; }
+.career-journey p { font-size:16px; line-height:1.9; color:var(--secondary); max-width:40ch; }
+.career-journey strong { display:block; font-size:14px; font-weight:500; margin-top:24px; line-height:1.8; }
+.education-detail { margin-top:24px; font-size:14px; }
+.education-detail p { color:var(--secondary); line-height:1.9; }
+@media(max-width:760px) {
+ .career-journey { grid-template-columns:1fr; gap:40px; margin-top:30px; }
+ .career-journey h3 { margin-top:20px; }
+}
+.profile-overview .brand-intro>div, .career-journey p, .career-journey h3 { word-break:keep-all; overflow-wrap:break-word; }
