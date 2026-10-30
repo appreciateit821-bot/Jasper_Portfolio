@@ -523,6 +523,50 @@
     });
   });
 
+  const portraitDialog = document.getElementById('portrait-dialog');
+  const portraitData = document.getElementById('portrait-data');
+  if (portraitDialog && portraitData) {
+    const portraits = JSON.parse(portraitData.textContent);
+    const image = document.getElementById('portrait-image');
+    const thumbnails = [...portraitDialog.querySelectorAll('[data-portrait-select]')];
+    let portraitIndex = 0;
+    let portraitOpener = null;
+    function showPortrait(index, scrollThumbnail = true) {
+      portraitIndex = (index + portraits.length) % portraits.length;
+      const p = portraits[portraitIndex];
+      image.getAnimations().forEach(animation => animation.cancel());
+      image.src = p.image;
+      image.alt = p.alt;
+      image.width = p.width;
+      image.height = p.height;
+      document.getElementById('portrait-caption').textContent = p.label;
+      document.getElementById('portrait-position').textContent = `${portraitIndex + 1} / ${portraits.length}`;
+      thumbnails.forEach((button, i) => button.setAttribute('aria-pressed', String(i === portraitIndex)));
+      if (scrollThumbnail) thumbnails[portraitIndex].scrollIntoView({block: 'nearest', inline: 'nearest', behavior: 'auto'});
+      if (!motionPaused) image.animate([{opacity: 0}, {opacity: 1}], {duration: 220, easing: 'ease-out'});
+    }
+    document.querySelectorAll('[data-portrait]').forEach(button => {
+      button.addEventListener('click', () => {
+        portraitOpener = button;
+        showPortrait(Math.max(0, portraits.findIndex(p => p.id === button.dataset.portrait)), false);
+        portraitDialog.showModal();
+        portraitDialog.scrollTop = 0;
+        thumbnails[portraitIndex].scrollIntoView({block: 'nearest', inline: 'nearest', behavior: 'auto'});
+        portraitDialog.querySelector('[data-close]').focus({preventScroll: true});
+      });
+    });
+    document.getElementById('portrait-prev').addEventListener('click', () => showPortrait(portraitIndex - 1));
+    document.getElementById('portrait-next').addEventListener('click', () => showPortrait(portraitIndex + 1));
+    thumbnails.forEach(button => button.addEventListener('click', () => showPortrait(Number(button.dataset.portraitSelect))));
+    portraitDialog.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        showPortrait(portraitIndex + (event.key === 'ArrowRight' ? 1 : -1));
+      }
+    });
+    portraitDialog.addEventListener('close', () => portraitOpener?.focus({preventScroll: true}));
+  }
+
   const menu = document.getElementById('menu-dialog');
   const menuToggle = document.getElementById('menu-toggle');
   menuToggle.addEventListener('click', () => {
