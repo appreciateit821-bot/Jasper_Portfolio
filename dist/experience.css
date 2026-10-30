@@ -562,3 +562,37 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
  .career-journey h3 { margin-top:20px; }
 }
 .profile-overview .brand-intro>div, .career-journey p, .career-journey h3 { word-break:keep-all; overflow-wrap:break-word; }
+
+/* Reader and touch controls — authored for Jasper's existing Cinema components. */
+.art-dialog[data-kind="writing"] .art-original-text{white-space:normal;max-width:34em;margin-inline:auto}
+.art-original-text p{white-space:pre-line;margin:0 0 1.55em;line-height:inherit;font-size:inherit;color:inherit}
+.art-original-text p:last-child{margin-bottom:0}
+.reading-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 0 16px;margin-bottom:30px;border-bottom:1px solid #d2d2d2;font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif}
+.reading-tools>span{color:#595959}.reading-tools button{min-height:48px;padding:10px 16px;border:1px solid #aaa}
+.reading-tools button[aria-pressed=true]{background:#111;color:#fff;border-color:#111}
+.art-dialog[data-kind="writing"].reading-large .art-original-text{font-size:22px;line-height:2}
+.reading-end{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.reading-end button{text-align:left;min-width:0;padding:16px;border:1px solid #bbb;align-self:stretch}
+.reading-end button>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font:16px/1.65 Batang,Georgia,serif;margin-top:12px}
+.reading-end button:disabled{border-style:dashed;cursor:default}
+.reading-back{display:block;width:100%;min-height:48px;margin:24px 0 0;padding:12px;border-bottom:1px solid #999;font-size:14px}
+.art-pagination{gap:12px}.art-pagination button{border:1px solid #aaa;padding:10px 14px;min-height:48px;min-width:100px;font-size:14px}
+.art-pagination button:disabled{opacity:.35;cursor:default}.dark .art-pagination button{border-color:#666}
+.close-button{border:1px solid currentColor;padding:8px 14px;min-height:48px;gap:12px}
+:is(.reading-start,.room-heading>button){padding:12px 16px;border:1px solid #888;font-size:14px;min-height:48px}
+:is(.reading-tools button,.reading-back,.reading-end button,.art-pagination button,.close-button,.reading-start,.room-heading>button,.presentation-controls button,.archive-filters button,.archive-views button){transition:background-color .18s ease,color .18s ease,box-shadow .18s ease;touch-action:manipulation}
+:is(.wall-work,.scene-row,.reading-row,.screen-feature,.venture-open,.connection-path){touch-action:manipulation}
+@media(hover:hover){
+ :is(.reading-tools button,.reading-back,.reading-end button,.art-pagination button,.close-button,.reading-start,.room-heading>button):not(:disabled):hover{background:#111;color:white;border-color:#111}
+ .dark :is(.art-pagination button,.close-button):not(:disabled):hover{background:#eee;color:#111;border-color:#eee}
+}
+button:not(:disabled):active{filter:brightness(.88)}
+:is(.reading-row,.scene-row,.venture-open,.connection-path):active{box-shadow:inset 4px 0 currentColor}
+button:disabled{cursor:default}
+@media(max-width:600px){.art-dialog[data-kind="writing"] .art-original-text{font-size:18px;line-height:1.95}.reading-tools{margin-bottom:26px}.reading-end button{padding:14px 12px}.reading-end button>span{font-size:15px}.art-pagination button{min-width:96px}.art-original-text p{margin-bottom:1.6em}}
+@media(prefers-reduced-motion:reduce){button{transition:none!important}}
+.motion-paused button{transition:none!important}
+.close-button,.close-button #art-close-label{font-size:14px;line-height:1.4}.close-button>span[aria-hidden]{font-size:22px;line-height:1}
+.art-dialog[data-kind="writing"] .art-pagination{margin-top:22px;padding-top:12px}
+.art-dialog[data-kind="writing"] .art-layout{gap:0}
+.art-dialog[data-kind="writing"] .art-layout #art-visual{margin-top:0;padding-top:8px}

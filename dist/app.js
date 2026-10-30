@@ -280,7 +280,29 @@
       const original = document.createElement('article');
       original.className = 'art-original-text';
       original.setAttribute('aria-label', `${work.title} 원문`);
-      original.textContent = work.text;
+      const characters = Array.from(work.text);
+      const boundaries = [0, ...(work.readingBreaks || []), characters.length];
+      for (let i = 1; i < boundaries.length; i++) {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = characters.slice(boundaries[i - 1], boundaries[i]).join('');
+        original.append(paragraph);
+      }
+      // The reader can enlarge type without losing the original words or line breaks.
+      const tools = document.createElement('div');
+      tools.className = 'reading-tools';
+      const duration = document.createElement('span');
+      duration.textContent = `약 ${Math.max(1, Math.ceil(characters.length / 500))}분 읽기`;
+      const size = document.createElement('button');
+      size.type = 'button'; size.textContent = '글자 크게';
+      size.setAttribute('aria-pressed', String(artDialog.classList.contains('reading-large')));
+      size.addEventListener('click', () => {
+        const large = artDialog.classList.toggle('reading-large');
+        size.setAttribute('aria-pressed', String(large));
+        size.textContent = large ? '기본 크기로' : '글자 크게';
+      });
+      if (artDialog.classList.contains('reading-large')) size.textContent = '기본 크기로';
+      tools.append(duration, size);
+      artVisual.append(tools);
       artVisual.append(original);
     } else if (work.image) {
       renderImage(work);
@@ -327,10 +349,22 @@
         for (const [label, offset] of [['이전 글', -1], ['다음 글', 1]]) {
           const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
           button.disabled = !workSequence[activeWork + offset];
-          button.addEventListener('click', () => showWork(workSequence[activeWork + offset])); end.append(button);
+          button.addEventListener('click', () => moveWork(offset));
+          const adjacent = works[workSequence[activeWork + offset]];
+          if (adjacent) {
+            const preview = document.createElement('span'); preview.textContent = adjacent.title;
+            button.append(preview);
+          }
+          end.append(button);
         }
-        artVisual.append(end);
+        const back = document.createElement('button'); back.type = 'button';
+        back.className = 'reading-back'; back.textContent = '글 목록으로 돌아가기';
+        back.addEventListener('click', () => dismissDialog(artDialog));
+        artVisual.append(end, back);
       }
+      const mediumNoun = work.kind === 'writing' ? '글' : work.kind === 'acting' ? '영상' : '작품';
+      previousWork.textContent = `← 이전 ${mediumNoun}`;
+      nextWork.textContent = `다음 ${mediumNoun} →`;
       previousWork.disabled = activeWork === 0;
       nextWork.disabled = activeWork === workSequence.length - 1;
       document.getElementById('art-position').textContent = `${activeWork + 1} / ${workSequence.length}`;
@@ -357,7 +391,7 @@
   document.querySelectorAll('[data-art]').forEach(button => {
     button.addEventListener('click', () => {
       workSequence = button.closest('#archive-dialog')
-        ? [...archiveItems.querySelectorAll('[data-art]')].filter(item => !item.hidden).map(item => item.dataset.art)
+        ? [...archiveItems.querySelectorAll('[data-art]')].filter(item => !item.hidden && item.dataset.kind === works[button.dataset.art].kind).map(item => item.dataset.art)
         : catalog.some(work => work.id === button.dataset.art) ? catalog.filter(work => work.kind === works[button.dataset.art].kind).map(work => work.id) : [button.dataset.art];
       showWork(button.dataset.art, button);
     });
@@ -367,13 +401,15 @@
     const key = workSequence[activeWork + offset];
     if (!key) return;
     showWork(key);
-    artDialog.querySelector('[data-close]').focus({ preventScroll: true });
+    const heading = document.getElementById('art-title');
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
   }
   previousWork.addEventListener('click', () => moveWork(-1));
   nextWork.addEventListener('click', () => moveWork(1));
   artDialog.addEventListener('keydown', event => {
     if (artVisual.classList.contains('is-zoomed') || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-    if (event.target.closest('video,audio,iframe,.art-image-pagination,.presentation-controls')) return;
+    if (event.target.closest('video,audio,iframe,.art-image-pagination,.presentation-controls,.reading-tools')) return;
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     moveWork(event.key === 'ArrowLeft' ? -1 : 1);
