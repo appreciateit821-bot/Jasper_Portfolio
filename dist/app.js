@@ -336,6 +336,7 @@
       const copy = layout.querySelector('.art-copy');
       if (work.kind === 'writing') layout.prepend(copy); else layout.append(copy);
       artDialog.dataset.kind = work.kind;
+      artDialog.dataset.work = key;
       artDialog.querySelector('.presentation-controls')?.remove();
       artDialog.classList.toggle('dark', work.kind === 'acting');
       document.getElementById('art-type').textContent = work.type;
@@ -629,6 +630,7 @@
         const selected = sheets.find(sheet => sheet.dataset.ventureSheet === button.dataset.openVenture);
         if (!selected) return;
         sheets.forEach(sheet => { sheet.hidden = sheet !== selected; });
+        ventureDialog.dataset.venture = button.dataset.openVenture;
         document.getElementById('venture-dialog-title').textContent = button.querySelector('.venture-name strong').textContent;
         ventureDialog.showModal();
         ventureDialog.scrollTop = 0;
