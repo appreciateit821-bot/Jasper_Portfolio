@@ -47,3 +47,12 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*::before,*::after{animation:none!important;transition:none!important}[data-reveal]{opacity:1!important;transform:none!important;clip-path:none!important}}
 .motion-paused *,.motion-paused *::before,.motion-paused *::after{animation:none!important;transition:none!important}
+
+/* Owner's introduction, supplied verbatim on 2026-11-14. */
+.personal-introduction.introduction{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;column-gap:clamp(40px,6vw,96px);row-gap:24px;padding-block:88px 104px}
+.personal-introduction h2{grid-column:1;grid-row:1;margin:0;font-size:clamp(36px,4vw,60px);font-weight:500;letter-spacing:-.05em;line-height:1.3;text-wrap:balance}
+.personal-introduction>.introduction-lead{grid-column:1;grid-row:2;font-size:clamp(22px,2.1vw,30px);line-height:1.7;max-width:27ch;word-break:keep-all;overflow-wrap:break-word}
+.introduction-story{grid-column:2;grid-row:1/span 3;max-width:65ch;min-width:0;padding-top:8px}
+.introduction-story p{margin:0;font-size:18px;line-height:1.95;word-break:keep-all;overflow-wrap:break-word}.introduction-story p+p{margin-top:28px}
+.personal-introduction.introduction>a{grid-column:1;grid-row:3;justify-self:start;align-self:end;min-height:48px;display:inline-flex;align-items:center;margin-top:8px}
+@media(max-width:760px){.personal-introduction.introduction{grid-template-columns:minmax(0,1fr);gap:24px;padding-block:64px 72px}.personal-introduction h2{font-size:36px}.personal-introduction>.introduction-lead{font-size:23px;line-height:1.7;max-width:none}.introduction-story{grid-column:1;grid-row:3;padding-top:8px}.introduction-story p{font-size:17px;line-height:1.95}.introduction-story p+p{margin-top:24px}.personal-introduction.introduction>a{grid-row:4;margin:0}}
