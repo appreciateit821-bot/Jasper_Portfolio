@@ -1,6 +1,6 @@
 /* Review tools are opt-in via ?review=1. Existing portfolio presentation is unchanged. */
 .jf-toolbar,.jf-sheet {font-family:'Noto Sans KR',sans-serif!important;color:#111;background:#fff;font-size:15px;letter-spacing:0;line-height:1.6;text-align:left}
-.jf-toolbar {position:fixed;z-index:2147483000;bottom:max(18px,env(safe-area-inset-bottom));right:20px;display:flex;gap:6px;align-items:center;padding:8px;border:1px solid #bbb;box-shadow:0 4px 28px #0002;max-width:calc(100vw - 24px)}
+.jf-toolbar {position:fixed;z-index:2147483000;bottom:max(18px,env(safe-area-inset-bottom));right:20px;display:flex;gap:6px;align-items:center;padding:8px;border:1px solid #bbb;box-shadow:0 4px 28px #0002;max-width:calc(100% - 24px)}
 .jf-toolbar .jf-hint {font-size:12px;max-width:180px;padding:0 8px}
 .jf-toolbar button,.jf-sheet button,.jf-sheet .jf-actions a {font:inherit!important;min-height:44px;min-width:44px;border:1px solid #aaa;border-radius:0;background:#fff;color:#111;padding:9px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;line-height:1.5;letter-spacing:0;transform:none}
 .jf-toolbar button:hover,.jf-sheet button:hover {background:#efefed}
@@ -8,7 +8,7 @@
 .jf-toolbar button[aria-pressed=true],.jf-sheet .jf-primary {background:#111;color:#fff;border-color:#111}
 .jf-toolbar button:focus-visible,.jf-sheet :focus-visible {outline:3px solid #111;outline-offset:3px}
 .jf-sheet button:disabled {opacity:.45;cursor:wait}
-.jf-sheet {padding:0;margin:auto 0 0 auto;width:min(520px,100vw);max-width:100vw;height:min(850px,92dvh);max-height:92dvh;border:1px solid #bbb;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;border-radius:0;inset:auto 0 0 auto}
+.jf-sheet {padding:0;margin:auto 0 0 auto;width:min(520px,100%);max-width:100%;height:min(850px,92dvh);max-height:92dvh;border:1px solid #bbb;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;border-radius:0;inset:auto 0 0 auto}
 .jf-sheet::backdrop {background:#0005}
 .jf-head {display:flex;align-items:center;gap:12px;justify-content:space-between;padding:18px 22px;position:sticky;top:0;background:#fff;z-index:2;border-bottom:1px solid #ddd}
 .jf-head h2 {font:500 19px/1.5 'Noto Sans KR',sans-serif!important;margin:0;letter-spacing:-.025em}
@@ -35,5 +35,8 @@
 .jf-box {position:fixed;z-index:2147482999;pointer-events:none;border:2px solid #111;outline:2px solid #fff;box-shadow:0 0 0 4px #0006;background:#fff1;box-sizing:border-box}
 .jf-box[hidden] {display:none!important}
 .jf-picking :not(.jf-toolbar):not(.jf-toolbar *) {cursor:crosshair!important}
-@media(max-width:600px){.jf-toolbar{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr auto}.jf-toolbar .jf-hint{grid-column:1/-1;max-width:none;padding:0 4px;font-size:12px}.jf-toolbar button{padding:8px 10px}.jf-head{padding:14px 18px}.jf-body{padding:18px}.jf-sheet{width:100vw;height:90dvh;max-height:90dvh}}
+@media(max-width:600px){.jf-toolbar{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr auto}.jf-toolbar .jf-hint{grid-column:1/-1;max-width:none;padding:0 4px;font-size:12px}.jf-toolbar button{padding:8px 10px}.jf-head{padding:14px 18px}.jf-body{padding:18px}.jf-sheet{width:100%;height:90dvh;max-height:90dvh}}
 @media(prefers-reduced-motion:no-preference){.jf-sheet[open]{animation:jf-appear .18s ease-out}@keyframes jf-appear{from{opacity:0;translate:0 12px}to{opacity:1;translate:0 0}}}
+
+.jf-active body{padding-bottom:110px}.jf-toolbar button{min-height:48px}.jf-sheet button:disabled{background:#ececea;color:#696966;opacity:1;cursor:wait}.feedback-entry{min-height:44px;display:inline-flex;align-items:center}
+@media(max-width:600px){.jf-active body{padding-bottom:142px}.jf-toolbar{border-radius:4px}.jf-toolbar .jf-hint{line-height:1.5}.jf-body{padding-bottom:32px}}

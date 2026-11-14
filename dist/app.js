@@ -648,10 +648,8 @@
       if (detailsAnimations.has(details)) return;
       const opening = !details.open;
       details.open = true;
-      const height = content.getBoundingClientRect().height;
-      const padding = getComputedStyle(content).paddingBottom;
-      const collapsed = { height: '0px', paddingBottom: '0px', opacity: 0 };
-      const expanded = { height: `${height}px`, paddingBottom: padding, opacity: 1 };
+      const collapsed = { transform: 'translateY(-6px)', opacity: 0 };
+      const expanded = { transform: 'translateY(0)', opacity: 1 };
       const animation = content.animate(opening ? [collapsed, expanded] : [expanded, collapsed], { duration: 420, easing: 'cubic-bezier(.16,1,.3,1)' });
       detailsAnimations.set(details, animation);
       animation.finished.catch(() => {}).then(() => {

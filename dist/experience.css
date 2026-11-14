@@ -1596,7 +1596,7 @@ button:disabled{cursor:default}
 
 /* User requested one typeface across the entire portfolio, 2026-10-30. */
 :root{--sans:"Noto Sans KR",sans-serif;--serif:"Noto Sans KR",sans-serif;--korean-serif:"Noto Sans KR",sans-serif}
-body,body *,body *::before,body *::after{font-family:"Noto Sans KR",sans-serif!important}
+body,body *,body *::before,body *::after{font-family:var(--sans)!important}
 .opening-name{font-size:clamp(90px,19vw,300px);letter-spacing:-.07em;line-height:1.08}
 .opening-name em,.room-heading h3,.reading-intro h3{font-style:normal}
 @media(max-width:760px){.opening-name{font-size:19vw;gap:8px}.room-heading h3,.reading-intro h3{letter-spacing:-.045em}}

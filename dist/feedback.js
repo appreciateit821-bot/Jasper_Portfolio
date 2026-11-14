@@ -18,7 +18,7 @@
   const save = () => { try { localStorage.setItem(STORE, JSON.stringify(state)); storageOK = true; } catch { storageOK = false; } };
   const box = el('div', { class: 'jf-box', 'aria-hidden': 'true', hidden: '' });
   const toolbar = el('aside', { class: 'jf-toolbar', 'data-feedback-ui': '', 'aria-label': '사이트 피드백 도구' });
-  const instruction = el('span', { class: 'jf-hint', role: 'status' }, '피드백 모드');
+  const instruction = el('span', { class: 'jf-hint', role: 'status' }, '고칠 부분을 선택해 의견을 남기세요');
   const pickButton = button('위치 찍기', () => setPicking(!picking), { 'aria-pressed': 'false' });
   const listButton = button('의견 목록', openList);
   const exitButton = button('종료', () => {
@@ -50,7 +50,7 @@
   function setPicking(value) {
     picking = value; pickButton.setAttribute('aria-pressed', String(value));
     pickButton.textContent = value ? '선택 취소' : '위치 찍기';
-    instruction.textContent = value ? '고칠 부분을 눌러 주세요. 스크롤도 할 수 있어요.' : '피드백 모드';
+    instruction.textContent = value ? '고칠 부분을 눌러 주세요. 스크롤도 할 수 있어요.' : '고칠 부분을 선택해 의견을 남기세요';
     document.documentElement.classList.toggle('jf-picking', value); box.hidden = true;
   }
   function selectorFor(node) {
@@ -164,7 +164,7 @@
   }
   function openList() {
     openSheet('남긴 피드백');
-    body.append(el('p', { class: 'jf-note' }, '접수 → Codex 수정안 → 공개 반영 승인 → 공개 반영 완료. 수정안을 확인하고 승인한 뒤 공개본에 반영합니다.'));
+    body.append(el('p', { class: 'jf-note' }, '의견을 모은 뒤 이 채팅에서 수정해 달라고 알려 주세요. Codex가 수정안을 만들고, 확인받은 뒤 공개합니다.'));
     const status = el('p', { class: 'jf-connection', role: 'status' }, connection); body.append(status);
     if (!storageOK) body.append(el('p', { role: 'alert' }, '기기 저장 불가 — 창을 닫기 전에 파일을 내려받아 주세요.'));
     if (!key) {
