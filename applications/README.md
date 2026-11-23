@@ -1,7 +1,72 @@
-# 비공개 참여 신청
+# 비공개 참여 신청 / 함께할 사람들
 
-`/api/applications`는 POST로 이름·이메일·자기소개·참여 목적·관심 브랜드·동의 시각을 저장합니다. 공개 조회는 차단하고 GET은 기존 `FEEDBACK_REVIEW_KEY` 인증이 필요합니다. 키와 실제 신청서는 dist·Git에 넣지 않습니다. 별도 이메일을 자동 발송하지 않습니다.
+사이트에서 함께할 일을 남긴 사람의 연락처와 관심 분야를 모읍니다. 공개 API는 작성만 허용하며, 조회·상태 변경·관리자 메모에는 기존 `FEEDBACK_REVIEW_KEY`가 필요합니다. 입력한 정보와 실제 신청 내역, 관리자 키는 `dist`나 Git에 넣지 않습니다. 상태를 변경해도 이메일이나 DM을 자동으로 보내지 않습니다.
 
-공개 전: 기존 Pages의 `FEEDBACK_DB`에 `applications/schema.sql`을 적용하고 같은 바인딩의 미리보기 배포에서 저장·재조회를 확인하세요. 현재는 로컬 코드와 SQLite 기반 단위 테스트만 완료한 상태입니다. file:// 검토 화면은 전송하지 않습니다.
+## 로컬 변경과 공개 반영
 
-접수 확인: `JASPER_FEEDBACK_KEY`를 안전하게 주입한 셸에서 `node scripts/applications.mjs --url <site-origin> --out <private-path>`를 실행합니다. 사용자 입력은 데이터로만 읽고 HTML·셸 명령으로 실행하지 않습니다. 삭제 요청을 받으면 해당 신청 ID로 기존 D1에서 삭제합니다. 원본 IP는 보관하지 않으며 요청 제한용 해시만 보관합니다.
+2026-11-23 변경은 **로컬 구현**입니다. 이번 작업에서는 원격 DB를 조회하거나 변경하거나 배포하지 않았습니다. 기존 `applications` 테이블은 보존하고, 부가 정보용 `application_details`만 추가합니다.
+
+공개 반영 승인 후에는 다음 순서로 진행합니다.
+
+1. 기존 `FEEDBACK_DB` 바인딩을 확인합니다. 관리 키를 코드에 쓰거나 교체할 필요는 없습니다.
+2. `applications/schema.sql`을 같은 DB에 적용합니다. `CREATE ... IF NOT EXISTS`만 사용하므로 재실행해도 기존 신청·동의 시각·관리 메모를 지우지 않습니다.
+3. 미리보기 배포에서 테스트용 이름·연락처로 신청 → 인증 조회 → 상태 변경 → 재조회 동작을 확인합니다. 테스트 데이터는 해당 ID만 삭제합니다.
+4. API와 `people.html`, `people.js`, `people.css`를 함께 공개 반영합니다. 스키마보다 새 API를 먼저 배포하면 새 신청은 `503 STORAGE_ERROR`를 반환합니다. 두 테이블의 저장은 D1 트랜잭션으로 묶여 있으므로 반쪽 신청을 성공으로 표시하지 않습니다.
+
+기존 행은 부가 테이블을 채우지 않아도 조회할 수 있습니다. 상태는 `new`, 소개 링크·메모·동의 버전은 빈 값으로 표시합니다. 이전 `partner`/`lab` 목적은 해당 관심 분야로 표시하며, 이전 `art` 신청은 그림·영화 중 어느 쪽인지 임의 추정하지 않고 별도 필터로 보여줍니다.
+
+## API
+
+### `POST /api/applications`
+
+기존 필드: `id`(UUID v4), `purpose`, `name`, `email`, `brand`, `message`, `consent:true`, `website:""`(스팸 방지용 빈 필드).
+
+- `purpose`: `connect`, `partner`, `art`, `lab`. 기존 세 가지 목적의 클라이언트도 그대로 유효합니다.
+- `name`: 1–80자. `email`: 3–254자. `message`: 10–4,000자.
+- `brand`: 빈 값 또는 웰모먼트 / 알마 / 재스퍼앤샬롯 / 타임오프클럽.
+- 선택 필드 `interests`: `partner`, `painting`, `film`, `writing`, `lab` 중 최대 5개. 중복은 제거합니다.
+- 선택 필드 `profileUrl`: 비밀번호·사용자명이 없는 HTTPS URL, 최대 2,048자. 서버에서 해당 URL을 방문하지 않습니다.
+- 선택 필드 `sourceContext`: 신청 버튼의 위치 등 최대 160자의 텍스트.
+- 선택 필드 `consentVersion`: 화면에서 실제 동의한 문구의 버전. 현재 클라이언트는 `2026-11-23`을 사용합니다. 선택되지 않은 동의를 버전만으로 대체하지 않습니다.
+
+필수 동의를 체크하지 않으면 저장하지 않습니다. 저장 시각을 `consent_at`으로 기록합니다. 최초 저장은 `201 {id}`, 같은 발신자의 같은 ID 재시도는 `200 {id}`입니다. 재시도로 내용이 덮어써지지 않습니다. 원본 IP는 보관하지 않으며, 키로 소금값을 더한 해시를 시간당 신규 신청 5건 제한에 사용합니다. 존재하는 다른 발신자의 ID는 `409`, 제한 초과는 `429`입니다.
+
+### `GET /api/applications?limit=100&cursor=...`
+
+`Authorization: Bearer <FEEDBACK_REVIEW_KEY>`가 필요합니다. 기본 100개, 최대 200개씩 최신순으로 조회합니다.
+
+```json
+{"items": [], "nextCursor": null, "hasMore": false, "total": 0, "truncated": false}
+```
+
+`nextCursor`가 있는 동안 조회하면 1,000개 이상이어도 전체 목록을 받을 수 있습니다. 각 행은 기존 `id,purpose,name,email,brand,message,consent_at,created_at`에 `interests,profileUrl,sourceContext,consentVersion,status,ownerNote,updatedAt`을 추가합니다. 발신자 해시는 반환하지 않습니다. 관리 페이지의 검색·관심 분야·상태 필터와 CSV는 **전체 페이지를 모두 받은 뒤** 작동합니다. 일부 페이지만 받으면 성공으로 간주하지 않습니다.
+
+### `PATCH /api/applications`
+
+동일한 Bearer 인증이 필요합니다.
+
+```json
+{"id":"UUID v4", "status":"contacted", "ownerNote":"다음 프로젝트 때 연락하기"}
+```
+
+상태는 `new`(새 신청), `contacted`(연락함), `connected`(함께하는 중), `archived`(보관)입니다. `ownerNote`는 최대 4,000자이고 생략 시 기존 메모를 유지하며 빈 문자열이면 메모를 비웁니다. 기존 신청자의 본문·관심 분야·연락처·동의 기록은 수정하지 않습니다. 성공 시 `{id,status,ownerNote,updatedAt}`을 반환합니다.
+
+## 관리자 화면
+
+`/people.html`에서 기존 관리자 키를 입력합니다. 화면 껍데기는 공개 파일이지만 신청 데이터는 API 인증 없이는 읽을 수 없습니다. 검색 노출 방지 메타 태그는 접근 통제 대신 사용하지 않습니다.
+
+- 키는 페이지 메모리에서만 유지하고, URL·localStorage·sessionStorage·쿠키에 넣지 않습니다. 새로고침·이탈·잠그기 시 제거합니다.
+- 관리자 페이지는 외부 스크립트·분석 도구를 사용하지 않습니다. API 리디렉션도 허용하지 않습니다.
+- 신청 문구와 관리자 메모는 `textContent`로 표시하며, HTML이나 셸 명령으로 실행하지 않습니다.
+- CSV에는 현재 필터 결과의 비공개 연락처와 메모가 포함됩니다. 수식으로 시작하는 셀에는 작은따옴표를 붙이고, 줄바꿈·쉼표·큰따옴표를 CSV 규칙으로 처리합니다.
+- 메일 주소를 누르면 사용자의 메일 앱을 열 뿐, 사이트가 메시지를 전송하지 않습니다.
+
+## 비공개 JSON 내보내기
+
+`JASPER_FEEDBACK_KEY`를 안전하게 주입한 셸에서 `node scripts/applications.mjs --url <site-origin> --out <private-path>`를 실행합니다. CLI는 전체 페이지를 받은 후에만 권한 `0600`의 파일로 저장하며 `dist` 경로 저장을 거부합니다. 키와 신청 내용은 터미널에 출력하지 않습니다.
+
+삭제 요청을 처리할 때는 해당 ID의 두 테이블 행만 제거합니다. 외래 키가 켜져 있으면 부모 신청 삭제가 부가 정보를 함께 제거합니다. 실제 관리자 운영 환경에서 키와 DB 접근 권한을 가진 사람이 처리하며, 공개 API에 삭제 기능은 없습니다.
+
+## 로컬 검증
+
+`node --test tests/applications-api.test.mjs`는 실제 SQLite와 D1 배치 트랜잭션을 흉내 낸 어댑터로 인증, 입력 검증, 이전 양식 호환, 원자적 저장, 재시도·경합, 1,000개 이상 페이지 조회, 상태·메모 갱신과 CSV 안전 처리를 확인합니다. VM과 가짜 DOM에서는 실제 관리자 화면 이벤트를 실행해 201개 신청의 페이지 조회, 텍스트 렌더링, 필터·PATCH·CSV, 인증 실패, 잠그기와 이탈 후 응답 무시까지 확인합니다. 테스트에는 가짜 신청과 가짜 관리자 키만 사용하며 네트워크·리스닝 서버를 열지 않습니다. 실제 브라우저의 시각적 렌더링과 배포된 D1 검증을 대체하지는 않습니다.

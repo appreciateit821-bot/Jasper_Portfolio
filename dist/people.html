@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>함께할 사람들 — Jasper</title>
+  <link rel="stylesheet" href="people.css">
+  <script type="module" src="people.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로</a>
+  <header class="page-header">
+    <a class="wordmark" href="cinema.html">JASPER<span> / PEOPLE</span></a>
+    <button id="lock" type="button" class="text-button" hidden>잠그기</button>
+  </header>
+  <main id="main">
+    <div class="page-intro">
+      <p class="eyebrow">PRIVATE ADDRESS BOOK</p>
+      <h1>함께할 사람들.</h1>
+      <p>남겨준 관심과 이야기를 읽고, 함께할 일이 생기면 연결해 보세요.</p>
+    </div>
+    <section id="entry" class="entry" aria-labelledby="entry-title">
+      <h2 id="entry-title">비공개 신청 관리</h2>
+      <p>신청 내용은 관리자 키를 입력한 뒤에만 볼 수 있습니다.</p>
+      <form id="unlock-form" autocomplete="off">
+        <label for="review-key">관리자 키</label>
+        <div class="key-input">
+          <input id="review-key" type="password" autocomplete="off" minlength="24" maxlength="249" required spellcheck="false" autocapitalize="none" aria-describedby="key-hint">
+          <button class="primary" id="unlock" type="submit">신청 열기 <span aria-hidden="true">↗</span></button>
+        </div>
+        <p class="hint" id="key-hint">기존 피드백 관리 키를 사용합니다. 키는 주소나 브라우저 저장소에 남기지 않으며, 새로고침하면 다시 입력합니다.</p>
+      </form>
+    </section>
+    <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    <section id="workspace" hidden aria-label="신청 목록">
+      <div class="collection-heading">
+        <h2>연결의 시작 <span id="total-count">0</span></h2>
+        <div class="collection-actions">
+          <button id="refresh" class="text-button" type="button">새로고침</button>
+          <button id="export" class="text-button" type="button">현재 결과 CSV <span aria-hidden="true">↓</span></button>
+        </div>
+      </div>
+      <div class="filters">
+        <label class="search-label">찾기<input id="search" type="search" placeholder="이름, 이메일, 관심사, 이야기" autocomplete="off"></label>
+        <label>관심 분야<select id="interest-filter"><option value="">전체 분야</option><option value="partner">브랜드</option><option value="painting">그림</option><option value="film">영화·연기</option><option value="writing">글</option><option value="lab">실험실 모임</option><option value="legacy-art">그림·영화 (이전 신청)</option></select></label>
+        <label>연결 상태<select id="status-filter"><option value="">전체 상태</option><option value="new">새 신청</option><option value="contacted">연락함</option><option value="connected">함께하는 중</option><option value="archived">보관</option></select></label>
+      </div>
+      <div class="list-meta"><p id="result-count" aria-live="polite"></p><p>이름을 누르면 전체 이야기가 열립니다.</p></div>
+      <ul id="people-list" class="people-list"></ul>
+      <p id="empty-state" class="empty-state" hidden>아직 남겨진 신청이 없습니다.</p>
+      <p class="privacy-note">신청 내용과 메모는 비공개입니다. CSV에는 연락처가 포함되므로 개인 보관용으로만 사용하세요. 상태를 바꿔도 신청자에게 메시지가 발송되지 않습니다.</p>
+    </section>
+  </main>
+  <dialog id="person-dialog" aria-labelledby="person-name">
+    <div class="dialog-header"><p class="eyebrow">LET’S CONNECT</p><button id="close-person" type="button" class="text-button" aria-label="신청 상세 닫기">닫기 <span aria-hidden="true">×</span></button></div>
+    <h2 id="person-name"></h2>
+    <p id="person-interests" class="person-interests"></p>
+    <div id="person-links" class="person-links"></div>
+    <p id="person-message" class="person-message"></p>
+    <dl id="person-meta" class="person-meta"></dl>
+    <form id="person-form">
+      <label for="person-status">연결 상태</label>
+      <select id="person-status"><option value="new">새 신청</option><option value="contacted">연락함</option><option value="connected">함께하는 중</option><option value="archived">보관</option></select>
+      <label for="person-note">나만 보는 메모 <span class="optional">선택</span></label>
+      <textarea id="person-note" maxlength="4000" rows="4" placeholder="함께하고 싶은 일, 연락한 내용 등을 남겨두세요."></textarea>
+      <button id="save-person" class="primary" type="submit">상태와 메모 저장 <span aria-hidden="true">↗</span></button>
+      <p id="save-notice" class="notice" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+</body>
+</html>

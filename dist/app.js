@@ -428,7 +428,12 @@
       artDialog.dataset.work = key;
       artDialog.querySelector('.presentation-controls')?.remove();
       artDialog.classList.toggle('dark', work.kind === 'acting');
-      document.getElementById('art-type').textContent = work.type;
+      document.getElementById('art-type').textContent = work.kind === 'writing' ? '창작글 — 상상으로 쓴 이야기' : work.type;
+      const collaborate = artDialog.querySelector('[data-connect]');
+      if (collaborate) {
+        collaborate.dataset.interest = work.kind === 'acting' ? 'film' : work.kind;
+        collaborate.dataset.sourceContext = `work:${key}`;
+      }
       const titleNode=document.getElementById('art-title');
       titleNode.textContent = work.kind==='writing' ? '글 읽기' : work.title;
       titleNode.classList.toggle('sr-only',work.kind==='writing');
@@ -453,7 +458,10 @@
         const back = document.createElement('button'); back.type = 'button';
         back.className = 'reading-back'; back.textContent = '글 목록으로 돌아가기';
         back.addEventListener('click', () => dismissDialog(artDialog));
-        artVisual.append(end, back);
+        const connect = document.createElement('button'); connect.type = 'button';
+        connect.className = 'reading-connect connection-primary'; connect.textContent = '글로 함께하기';
+        connect.dataset.connect = 'art'; connect.dataset.interest = 'writing'; connect.dataset.sourceContext = `work:${key}`;
+        artVisual.append(end, back, connect);
       }
       const mediumNoun = work.kind === 'writing' ? '글' : work.kind === 'acting' ? '영상' : '작품';
       previousWork.textContent = `← 이전 ${mediumNoun}`;
@@ -560,14 +568,19 @@
   const purpose = document.getElementById('connection-purpose');
   const feedback = document.getElementById('form-feedback');
   const connections = {
+    connect: {
+      title: '먼저, 서로를 알아가요.',
+      description: '지금 구체적인 제안이 없어도 괜찮아요. 관심 있는 일과 짧은 소개를 남겨 주세요. 함께할 기회가 생겼을 때 다시 만날 수 있도록요.',
+      question: '어떤 사람인지, 무엇에 관심이 있는지 알려주세요.'
+    },
     partner: {
       title: '브랜드 채용',
       description: 'AI를 잘 쓰거나, 미감이 높은 분을 찾습니다. 둘 중 하나만 해당해도 좋습니다. 원하는 브랜드를 맡아 운영하고 키워갈 수 있습니다.',
       question: '본인 소개와 맡고 싶은 브랜드, 잘하는 일을 알려주세요.'
     },
     art: {
-      title: '그림과 영화',
-      description: '그림으로 콜라보 작품을 만들거나 전시를 함께 기획할 사람, 영화를 함께 만들거나 실험적인 연기를 시도할 사람을 찾습니다.',
+      title: '함께 만드는 작업',
+      description: '그림과 전시, 영화와 연기, 글로 함께 만들어 보고 싶은 것을 들려주세요. 서로의 경험과 감각이 만나는 작업을 기다립니다.',
       question: '본인 소개와 함께 만들고 싶은 작업을 들려주세요.'
     },
     lab: {
@@ -577,10 +590,11 @@
     }
   };
   let applicationId = null;
+  let sourceContext = 'direct';
   let submitting = false;
   let connectOpener = null;
   const applicationButton = form.querySelector('[type="submit"]');
-  const localFile = location.protocol === 'file:';
+  const localFile = !['http:', 'https:'].includes(location.protocol);
   if (localFile) {
     document.getElementById('application-note').textContent = '로컬 화면에서는 전송되지 않습니다. 공개 후 이곳에서 신청할 수 있습니다.';
     applicationButton.textContent = '작성 내용 확인하기';
@@ -590,43 +604,65 @@
   function setPurpose(key) {
       const connection = connections[key];
       if (!connection) return;
+      if (purpose.value !== key) applicationId = null;
       purpose.value = key;
-      applicationId = null;
       document.getElementById('connect-title').textContent = connection.title;
       document.getElementById('connect-description').textContent = connection.description;
       document.getElementById('question-copy').textContent = connection.question;
       document.getElementById('brand-label').hidden = key !== 'partner';
       brand.disabled = key !== 'partner';
+      applicationButton.textContent = localFile ? '작성 내용 확인하기' : key === 'connect' ? '관심 남기기' : '소개 남기기';
       feedback.hidden = true;
   }
 
-  purpose.addEventListener('change', () => setPurpose(purpose.value));
-  document.querySelectorAll('[data-connect]').forEach(button => {
-    button.addEventListener('click', () => {
-      if (submitting) return;
-      if (artDialog.open) pauseArtMedia();
-      connectOpener = button;
-      setPurpose(button.dataset.connect);
-      if (button.dataset.brand) brand.value = button.dataset.brand;
-      connectDialog.showModal();
-      connectDialog.scrollTop = 0;
-      const connectTitle = document.getElementById('connect-title');
-      if (connectTitle.hasAttribute('tabindex')) connectTitle.focus({ preventScroll: true });
-    });
+  purpose.addEventListener('change', () => { applicationId = null; setPurpose(purpose.value); });
+  document.addEventListener('click', event => {
+    const button = event.target.closest('[data-connect]');
+    if (!button || submitting || !connections[button.dataset.connect]) return;
+    if (artDialog.open) pauseArtMedia();
+    connectOpener = button;
+    setPurpose(button.dataset.connect);
+    const nextSource = button.dataset.sourceContext || 'direct';
+    if (sourceContext !== nextSource) applicationId = null;
+    sourceContext = nextSource;
+    if (button.dataset.brand) brand.value = button.dataset.brand;
+    // Add the clicked context without discarding other interests or a draft.
+    const selectedInterest = button.dataset.interest || ({partner:'partner',lab:'lab'}[button.dataset.connect]);
+    if (selectedInterest) {
+      const checkbox = [...form.querySelectorAll('[name="interests"]')].find(input => input.value === selectedInterest);
+      if (checkbox && !checkbox.checked) { checkbox.checked = true; applicationId = null; }
+    }
+    if (!connectDialog.open) connectDialog.showModal();
+    connectDialog.scrollTop = 0;
+    document.getElementById('connect-title').focus({ preventScroll: true });
   });
 
   form.addEventListener('input', () => { feedback.hidden = true; applicationId = null; });
+  const profileInput = form.querySelector('[name="profileUrl"]');
+  function validateProfileUrl() {
+    const value = profileInput.value.trim();
+    let valid = !value;
+    if (value) {
+      try { const url = new URL(value); valid = url.protocol === 'https:' && !url.username && !url.password; } catch (_) {}
+    }
+    profileInput.setCustomValidity(valid ? '' : 'https://로 시작하는 공개 프로필 링크를 입력해 주세요.');
+  }
+  profileInput.addEventListener('input', validateProfileUrl);
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    if (submitting || !form.reportValidity()) return;
+    if (submitting) return;
+    validateProfileUrl();
+    if (!form.reportValidity()) return;
     if (localFile) {
       feedback.textContent = '작성 내용을 확인했습니다. 로컬 미리보기이므로 전송·저장하지 않았습니다.';
+      feedback.dataset.state = 'preview';
       feedback.hidden = false; feedback.focus(); return;
     }
     const data = new FormData(form);
     applicationId ||= crypto.randomUUID();
-    const payload = {id:applicationId, purpose:purpose.value, name:String(data.get('name') || '').trim(), email:String(data.get('email') || '').trim(), brand:brand.disabled?'':brand.value, message:String(data.get('message') || '').trim(), consent:data.get('consent')==='on', website:String(data.get('website') || '')};
+    const payload = {id:applicationId, purpose:purpose.value, name:String(data.get('name') || '').trim(), email:String(data.get('email') || '').trim(), brand:brand.disabled?'':brand.value, message:String(data.get('message') || '').trim(), consent:data.get('consent')==='on', website:String(data.get('website') || ''), interests:data.getAll('interests'), profileUrl:String(data.get('profileUrl') || '').trim(), sourceContext, consentVersion:'2026-11-23'};
     submitting = true; applicationButton.disabled = true; applicationButton.textContent = '보내는 중…';
+    applicationButton.dataset.state = 'pending';
     // Preserve exactly the submitted values while a request is pending.
     const controls = [...form.elements, purpose];
     const disabledBefore = controls.map(control => control.disabled);
@@ -635,13 +671,16 @@
       const response = await fetch('/api/applications', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
       const result = await response.json();
       if (!response.ok || result.id !== applicationId) throw new Error(response.status === 429 ? '잠시 후 다시 신청해 주세요.' : '접수하지 못했습니다. 작성 내용은 그대로 있으니 다시 시도하거나 이메일로 보내 주세요.');
-      feedback.textContent = '신청이 접수되었습니다. 남겨주신 이메일로 연락드릴게요.';
+      feedback.textContent = '소개를 잘 받았습니다. 함께할 일이 생기면 남겨주신 이메일로 연락드릴게요.';
+      feedback.dataset.state = 'success';
       form.reset(); applicationId = null;
     } catch (error) {
+      feedback.dataset.state = 'error';
       feedback.textContent = error.message?.startsWith('잠시') || error.message?.startsWith('접수하지') ? error.message : '접수 여부를 확인하지 못했습니다. 작성 내용은 그대로 있습니다. 다시 누르면 중복 없이 접수 여부를 확인합니다.';
     } finally {
       controls.forEach((control,index) => control.disabled=disabledBefore[index]);
-      submitting=false; applicationButton.disabled=false; applicationButton.textContent='신청 남기기';
+      submitting=false; applicationButton.disabled=false; applicationButton.textContent=purpose.value==='connect'?'관심 남기기':'소개 남기기';
+      delete applicationButton.dataset.state;
       feedback.hidden=false;feedback.focus({preventScroll:true});feedback.scrollIntoView({block:'nearest',behavior:motionPaused?'auto':'smooth'});
     }
   });
@@ -658,8 +697,8 @@
     const menuExit = document.body.classList.contains('variant-atelier') ? 'inset(0 100% 0 0)' : 'inset(0 0 100% 0)';
     const frames = dialog.id === 'menu-dialog'
       ? [{ clipPath: 'inset(0)' }, { clipPath: menuExit }]
-      : dialog.id === 'connect-dialog' && document.querySelector('.correspondence')
-        ? [{ transform: 'none' }, { transform: 'translateX(100%)' }]
+      : dialog.id === 'connect-dialog'
+        ? [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: window.matchMedia('(max-width: 760px)').matches ? 'translateY(40px)' : 'translateX(40px)' }]
         : [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(16px)' }];
     const animation = dialog.animate(frames, { duration: dialog.id === 'menu-dialog' ? 340 : 180, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' });
     const completion = animation.finished.catch(() => {}).then(() => {
@@ -685,50 +724,12 @@
     });
   });
 
-  // Progressive enhancement: the three sections remain readable without JavaScript.
-  const photoTabs = [...document.querySelectorAll('[data-photo-tab]')];
-  const photoPanels = [...document.querySelectorAll('[data-photo-panel]')];
-  const photoLabels = {profile:'프로필 사진',still:'스틸컷',journal:'촬영 현장'};
-  function selectPhotoCategory(key) {
-    photoTabs.forEach(tab => {
-      const active = tab.dataset.photoTab === key;
-      tab.setAttribute('aria-selected', String(active));
-      tab.tabIndex = active ? 0 : -1;
-    });
-    photoPanels.forEach(panel => {panel.hidden = panel.dataset.photoPanel !== key;if(panel.hidden)panel.querySelectorAll('[data-instagram-post]').forEach(details=>{details.open=false;details.querySelector('iframe')?.removeAttribute('src');});});
-  }
-  if (photoTabs.length) {
-    document.querySelector('.acting-photo-tabs').setAttribute('role','tablist');
-    photoTabs.forEach((tab,index) => {
-      tab.setAttribute('role','tab');
-      tab.setAttribute('aria-controls',tab.hash.slice(1));
-      tab.addEventListener('click', event => {
-        event.preventDefault();
-        selectPhotoCategory(tab.dataset.photoTab);
-        history.replaceState(null,'',tab.hash);
-      });
-      tab.addEventListener('keydown', event => {
-        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-        let next = event.key === 'ArrowRight' ? (index + 1) % photoTabs.length : event.key === 'ArrowLeft' ? (index + photoTabs.length - 1) % photoTabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? photoTabs.length - 1 : -1;
-        if (event.key === ' ') {event.preventDefault();tab.click();return;}
-        if (next < 0) return;
-        event.preventDefault();photoTabs[next].click();photoTabs[next].focus({preventScroll:true});
-      });
-    });
-    photoPanels.forEach(panel => {panel.setAttribute('role','tabpanel');panel.tabIndex=0;});
-    const fromHash = () => {
-      const tab = photoTabs.find(tab => tab.hash === location.hash);
-      if (tab) selectPhotoCategory(tab.dataset.photoTab);
-    };
-    selectPhotoCategory('profile');fromHash();window.addEventListener('hashchange',fromHash);
-  }
-
   const portraitDialog = document.getElementById('portrait-dialog');
   const portraitData = document.getElementById('portrait-data');
   if (portraitDialog && portraitData) {
     const allData = document.getElementById('acting-photos-data');
     const groups = allData ? JSON.parse(allData.textContent) : {profile:JSON.parse(portraitData.textContent)};
-    let portraits = groups.profile;
+    let portraits = groups.all || groups.profile;
     const image = document.getElementById('portrait-image');
     const thumbnailList = portraitDialog.querySelector('.portrait-thumbnails');
     let thumbnails = [];
@@ -739,23 +740,25 @@
       const p = portraits[portraitIndex];
       image.getAnimations().forEach(animation => animation.cancel());
       image.src = p.image;image.alt = p.alt;image.width = p.width;image.height = p.height;
-      document.getElementById('portrait-caption').textContent = p.label;
+      document.getElementById('portrait-caption').textContent = p.alt;
       document.getElementById('portrait-position').textContent = `${portraitIndex + 1} / ${portraits.length}`;
       thumbnails.forEach((button,i) => button.setAttribute('aria-pressed',String(i === portraitIndex)));
       if (scrollThumbnail) thumbnails[portraitIndex]?.scrollIntoView({block:'nearest',inline:'nearest',behavior:'auto'});
       if (!motionPaused) image.animate([{opacity:.4,clipPath:'inset(0 8% 0 0)'},{opacity:1,clipPath:'inset(0)'}],{duration:240,easing:'ease-out'});
     }
     function openPhoto(button,category,id) {
+      // The selected work and legacy portrait links join the same shuffled sequence.
+      if (groups.all?.length) category = 'all';
       const ordered=[...document.querySelectorAll(`[data-photo-panel="${category}"] [data-photo-id]`)].map(node=>groups[category]?.find(p=>p.id===node.dataset.photoId)).filter(Boolean);
       portraits = ordered.length ? ordered : groups[category];
       if (!portraits?.length) return;
       const index = portraits.findIndex(p => p.id === id);
       if (index < 0) return;
       portraitOpener=button;
-      document.getElementById('portrait-title').textContent=photoLabels[category] || '프로필 사진';
+      document.getElementById('portrait-title').textContent='연기 사진';
       thumbnailList.replaceChildren();
       thumbnails=portraits.map((p,i) => {
-        const thumb=document.createElement('button');thumb.type='button';thumb.dataset.portraitSelect=String(i);thumb.setAttribute('aria-label',`${p.label} 보기`);thumb.setAttribute('aria-pressed','false');
+        const thumb=document.createElement('button');thumb.type='button';thumb.dataset.portraitSelect=String(i);thumb.setAttribute('aria-label',`${p.alt} 보기`);thumb.setAttribute('aria-pressed','false');
         const picture=new Image();picture.src=p.thumb;picture.alt='';picture.width=80;picture.height=100;picture.loading='lazy';
         const number=document.createElement('span');number.textContent=String(i+1).padStart(2,'0');thumb.append(picture,number);
         thumb.addEventListener('click',()=>showPortrait(i));thumbnailList.append(thumb);return thumb;
