@@ -1,4 +1,72 @@
 /* A / Project showcase and correspondence. Shared content comes from ventures.json. */
+.venture-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 clamp(12px, 4vw, 52px);
+  padding: 0;
+  list-style: none;
+}
+
+#brands .venture-grid .venture-card {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(16px, 2.5vw, 32px) 0;
+  border-block-end: 1px solid #d2d2d2;
+}
+
+.venture-grid .venture-open {
+  position: relative;
+  display: grid;
+  grid-template-columns: clamp(60px, 8vw, 96px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+  flex: 1;
+  padding-inline-end: 38px;
+}
+
+.venture-grid .venture-card-icon {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #b0b0b0;
+  border-radius: 50%;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.venture-grid .venture-open:is(:hover,:focus-visible) .venture-card-icon {
+  background: #080808;
+  border-color: #080808;
+  color: #fff;
+}
+
+.venture-grid .venture-cover {
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid #e6e6e6;
+}
+
+.venture-grid .cover-edition,
+.venture-grid .cover-caption { display: none; }
+.venture-grid .venture-wordmark { font-size: 14px; }
+.venture-grid .venture-name strong { font-size: clamp(16px, 2.5vw, 28px); word-break: keep-all; overflow-wrap: anywhere; }
+.venture-grid .venture-name small { overflow-wrap: anywhere; }
+
+.venture-invitation { padding-top: 28px; scroll-margin-top: 120px; }
+.venture-invitation p { margin: 12px 0 0; max-width: 52ch; font-size: 14px; line-height: 1.8; color: #595959; }
+.ventures-toolbar h3 { margin: 0; font-size: inherit; font-weight: 500; }
+
+@media (max-width: 600px) {
+  .venture-grid .venture-open { grid-template-columns: minmax(0,1fr); align-content: start; padding-inline-end: 0; }
+  .venture-grid .venture-cover-window { width: 64px; }
+  .venture-grid .venture-name small { font-size: 13px; line-height: 1.55; }
+}
+
 .about .personal-name{align-self:start}
 .about-roles{font:400 14px/1.9 var(--sans);letter-spacing:0;color:#595959;margin:26px 0 0}
 .career-proof{display:grid;grid-template-columns:1fr 1fr;column-gap:34px;row-gap:26px;margin:40px 0 58px}

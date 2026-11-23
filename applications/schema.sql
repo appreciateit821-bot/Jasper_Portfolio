@@ -25,3 +25,9 @@ CREATE TABLE IF NOT EXISTS application_details (
 );
 CREATE INDEX IF NOT EXISTS applications_created_id ON applications(created_at DESC, id DESC);
 CREATE INDEX IF NOT EXISTS application_details_status ON application_details(status);
+
+CREATE TABLE IF NOT EXISTS application_attachments (
+  application_id TEXT PRIMARY KEY REFERENCES applications(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  content BLOB NOT NULL CHECK (length(content) BETWEEN 1 AND 1048576)
+);

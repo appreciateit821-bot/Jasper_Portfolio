@@ -4,6 +4,10 @@ const json = (value, status = 200) => new Response(JSON.stringify(value), {
 });
 const digest = async value => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
 const brands = new Set(['', '웰모먼트', '알마', '재스퍼앤샬롯', '타임오프클럽']);
+const projectSeparator = ' · ';
+const maxAttachmentBytes = 1024 * 1024;
+const maxJsonBytes = 24000;
+const maxAttachmentBase64 = Math.ceil(maxAttachmentBytes / 3) * 4;
 const purposes = new Set(['connect', 'partner', 'art', 'lab']);
 const interests = new Set(['partner', 'painting', 'film', 'writing', 'lab']);
 const statuses = new Set(['new', 'contacted', 'connected', 'archived']);
@@ -11,8 +15,10 @@ const uuid = value => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a
 const validText = (value, min, max) => typeof value === 'string' && value.trim().length >= min && value.length <= max && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value);
 const fallbackInterests = purpose => ['partner', 'lab'].includes(purpose) ? [purpose] : [];
 const selectApplication = `SELECT a.id,a.purpose,a.name,a.email,a.brand,a.message,a.consent_at,a.created_at,
-  d.interests,d.profile_url,d.source_context,d.consent_version,d.status,d.owner_note,d.updated_at
-  FROM applications a LEFT JOIN application_details d ON d.application_id=a.id`;
+  d.interests,d.profile_url,d.source_context,d.consent_version,d.status,d.owner_note,d.updated_at,
+  f.filename AS attachment_name,length(f.content) AS attachment_size
+  FROM applications a LEFT JOIN application_details d ON d.application_id=a.id
+  LEFT JOIN application_attachments f ON f.application_id=a.id`;
 
 function publicOwnerFields(row) {
   let selected = fallbackInterests(row.purpose);
@@ -21,10 +27,12 @@ function publicOwnerFields(row) {
   }
   return {
     id: row.id, purpose: row.purpose, name: row.name, email: row.email, brand: row.brand,
+    projects: row.brand ? row.brand.split(projectSeparator) : [],
     message: row.message, consent_at: row.consent_at, created_at: row.created_at,
     interests: selected, profileUrl: row.profile_url || '', sourceContext: row.source_context || '',
     consentVersion: row.consent_version || '', status: statuses.has(row.status) ? row.status : 'new',
     ownerNote: row.owner_note || '', updatedAt: row.updated_at || row.created_at,
+    attachment: row.attachment_name ? {name: row.attachment_name, size: Number(row.attachment_size)} : null,
   };
 }
 
@@ -52,13 +60,45 @@ async function readInput(request) {
   if (reader) while (true) {
     const {done, value} = await reader.read(); if (done) break;
     size += value.byteLength;
-    if (size > 24000) { await reader.cancel(); return {error: json({error: 'TOO_LARGE'}, 413)}; }
+    if (size > maxJsonBytes + maxAttachmentBase64) { await reader.cancel(); return {error: json({error: 'TOO_LARGE'}, 413)}; }
     chunks.push(value);
   }
   const bytes = new Uint8Array(size); let offset = 0;
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-  try { return {input: JSON.parse(new TextDecoder().decode(bytes))}; }
+  try {
+    const input = JSON.parse(new TextDecoder().decode(bytes));
+    if (size > maxJsonBytes && (!input?.attachment || typeof input.attachment.content !== 'string'
+      || size - input.attachment.content.length > maxJsonBytes)) return {error: json({error: 'TOO_LARGE'}, 413)};
+    return {input};
+  }
   catch { return {error: json({error: 'JSON'}, 400)}; }
+}
+
+function readAttachment(value) {
+  if (!validText(value?.name, 1, 180) || /[\\/:*?"<>|\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(value.name)
+    || typeof value.content !== 'string' || value.content.length > maxAttachmentBase64) return null;
+  const name = value.name.trim().toWellFormed();
+  const extension = name.split('.').at(-1)?.toLowerCase();
+  if (!name.includes('.') || !['pdf', 'jpg', 'jpeg', 'png'].includes(extension)) return null;
+  let binary;
+  try { binary = atob(value.content); } catch { return null; }
+  if (!binary.length || binary.length > maxAttachmentBytes) return null;
+  const signature = extension === 'pdf' ? '%PDF-' : extension === 'png' ? '\x89PNG\r\n\x1a\n' : '\xff\xd8\xff';
+  if (!binary.startsWith(signature)) return null;
+  return {name, content: Uint8Array.from(binary, char => char.charCodeAt(0)).buffer};
+}
+
+async function downloadAttachment(id, db) {
+  if (!uuid(id)) return json({error: 'INVALID_ATTACHMENT_ID'}, 400);
+  const file = await db.prepare('SELECT filename,content FROM application_attachments WHERE application_id=?').bind(id).first();
+  if (!file) return json({error: 'NOT_FOUND'}, 404);
+  const encodedName = encodeURIComponent(file.filename).replace(/['()*]/g, char => '%' + char.charCodeAt(0).toString(16));
+  return new Response(new Uint8Array(file.content), {headers: {
+    'Content-Type': 'application/octet-stream',
+    'Content-Disposition': "attachment; filename*=UTF-8''" + encodedName,
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+  }});
 }
 
 async function listApplications(request, db) {
@@ -103,20 +143,28 @@ export async function onRequest({request, env}) {
   if (!['GET', 'POST', 'PATCH'].includes(request.method)) return json({error: 'METHOD'}, 405);
   if (['GET', 'PATCH'].includes(request.method) && !await authorized(request, env.FEEDBACK_REVIEW_KEY)) return json({error: 'UNAUTHORIZED'}, 401);
   try {
-    if (request.method === 'GET') return await listApplications(request, env.FEEDBACK_DB);
+    if (request.method === 'GET') {
+      const id = new URL(request.url).searchParams.get('attachment');
+      return id === null ? await listApplications(request, env.FEEDBACK_DB) : await downloadAttachment(id, env.FEEDBACK_DB);
+    }
     const body = await readInput(request); if (body.error) return body.error;
     const input = body.input;
     if (request.method === 'PATCH') return await updateApplication(input, env.FEEDBACK_DB);
     const selected = input?.interests === undefined ? fallbackInterests(input?.purpose) : input.interests;
+    const projects = input?.projects === undefined ? (input?.brand ? [input.brand] : []) : input.projects;
     const profile = profileUrl(input?.profileUrl);
     if (!input || !uuid(input.id) || !purposes.has(input.purpose) || !validText(input.name, 1, 80) || /[\r\n\t]/.test(input.name)
       || !validText(input.email, 3, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)
       || !validText(input.message, 10, 4000) || input.consent !== true || !brands.has(input.brand) || input.website
+      || !Array.isArray(projects) || projects.length > 4 || projects.some(value => !value || !brands.has(value))
+      || (input.projects !== undefined && input.purpose !== 'partner' && projects.length)
       || !Array.isArray(selected) || selected.length > 5 || selected.some(value => !interests.has(value))
       || profile === null || (input.sourceContext !== undefined && !validText(input.sourceContext, 0, 160))
       || (input.consentVersion !== undefined && (typeof input.consentVersion !== 'string' || !/^[a-zA-Z0-9._-]{1,40}$/.test(input.consentVersion)))) {
       return json({error: 'INVALID_APPLICATION'}, 400);
     }
+    const attachment = input.attachment === undefined ? null : readAttachment(input.attachment);
+    if (input.attachment !== undefined && (!attachment || input.purpose !== 'partner')) return json({error: 'INVALID_ATTACHMENT'}, 400);
     const now = new Date().toISOString();
     // No raw IP addresses are stored. Salted hashes enforce a per-hour limit.
     const hashed = await digest(env.FEEDBACK_REVIEW_KEY + '|' + (request.headers.get('CF-Connecting-IP') || 'local'));
@@ -126,14 +174,22 @@ export async function onRequest({request, env}) {
     const since = new Date(Date.now() - 3600000).toISOString();
     // D1 batch is transactional: missing migrations or metadata failures roll back the contact too.
     // Each statement is conditional so concurrent retries preserve the first accepted submission.
-    const results = await env.FEEDBACK_DB.batch([
+    const statements = [
       env.FEEDBACK_DB.prepare(`INSERT OR IGNORE INTO applications (id,purpose,name,email,brand,message,consent_at,created_at,sender_hash)
         SELECT ?,?,?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM applications WHERE sender_hash=? AND created_at>?) < 5`)
-        .bind(input.id, input.purpose, input.name.trim(), input.email.trim(), input.brand, input.message.trim(), now, now, sender, sender, since),
-      env.FEEDBACK_DB.prepare(`INSERT INTO application_details (application_id,interests,profile_url,source_context,consent_version,updated_at)
-        SELECT id,?,?,?,?,? FROM applications WHERE id=? AND sender_hash=? ON CONFLICT(application_id) DO NOTHING`)
-        .bind(JSON.stringify([...new Set(selected)]), profile, (input.sourceContext || '').trim(), input.consentVersion || '', now, input.id, sender),
-    ]);
+        .bind(input.id, input.purpose, input.name.trim(), input.email.trim(), [...new Set(projects)].join(projectSeparator), input.message.trim(), now, now, sender, sender, since),
+    ];
+    if (attachment) {
+      // The winning batch has inserted its application but not its details yet.
+      statements.push(env.FEEDBACK_DB.prepare(`INSERT INTO application_attachments (application_id,filename,content)
+        SELECT a.id,?,? FROM applications a WHERE a.id=? AND a.sender_hash=?
+        AND NOT EXISTS (SELECT 1 FROM application_details d WHERE d.application_id=a.id)`)
+        .bind(attachment.name, attachment.content, input.id, sender));
+    }
+    statements.push(env.FEEDBACK_DB.prepare(`INSERT INTO application_details (application_id,interests,profile_url,source_context,consent_version,updated_at)
+      SELECT id,?,?,?,?,? FROM applications WHERE id=? AND sender_hash=? ON CONFLICT(application_id) DO NOTHING`)
+      .bind(JSON.stringify([...new Set(selected)]), profile, (input.sourceContext || '').trim(), input.consentVersion || '', now, input.id, sender));
+    const results = await env.FEEDBACK_DB.batch(statements);
     if (results[0].meta.changes === 1) return json({id: input.id}, 201);
     const retry = await env.FEEDBACK_DB.prepare('SELECT id,sender_hash FROM applications WHERE id=?').bind(input.id).first();
     if (retry) return retry.sender_hash === sender ? json({id: input.id}, 200) : json({error: 'CONFLICT'}, 409);

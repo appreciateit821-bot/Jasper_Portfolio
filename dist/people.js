@@ -61,7 +61,7 @@ function initialize() {
     $('workspace').hidden = true; $('entry').hidden = false; $('lock').hidden = true;
     setBusy(false); message(text); $('review-key').focus();
   }
-  async function api(path = '', options = {}) {
+  async function api(path = '', options = {}, download = false) {
     const controller = new AbortController(); requests.add(controller);
     const timeout = setTimeout(() => controller.abort(), 20000);
     try {
@@ -70,8 +70,9 @@ function initialize() {
         cache: 'no-store', credentials: 'omit', redirect: 'error', referrerPolicy: 'no-referrer', signal: controller.signal,
       });
       if (response.status === 401) { lock('관리자 키를 확인하고 다시 입력해 주세요.'); throw Error('AUTH'); }
-      if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) throw Error(response.status === 503 ? 'STORAGE' : 'REQUEST');
-      return await response.json();
+      const expectedType = download ? 'application/octet-stream' : 'application/json';
+      if (!response.ok || !response.headers.get('Content-Type')?.includes(expectedType)) throw Error(response.status === 503 ? 'STORAGE' : 'REQUEST');
+      return download ? await response.blob() : await response.json();
     } finally { clearTimeout(timeout); requests.delete(controller); }
   }
   function renderList() {
@@ -104,6 +105,26 @@ function initialize() {
     const email = node('a', item.email); email.href = 'mailto:' + encodeURIComponent(item.email); links.append(email);
     const profile = safeProfileLink(item.profileUrl);
     if (profile) { const link = node('a', '소개 링크 열기 ↗'); link.href = profile; link.target = '_blank'; link.rel = 'noopener noreferrer'; links.append(link); }
+    if (item.attachment) {
+      const button = node('button', '첨부 내려받기 · ' + item.attachment.name, 'text-button');
+      button.type = 'button';
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        const version = generation;
+        try {
+          const file = await api('?attachment=' + encodeURIComponent(item.id), {}, true);
+          if (version !== generation || activeId !== id || !$('person-dialog').open) return;
+          const url = URL.createObjectURL(file);
+          const link = document.createElement('a');
+          link.href = url; link.download = item.attachment.name;
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch {
+          if (version === generation && activeId === id) $('save-notice').textContent = '첨부 파일을 내려받지 못했습니다. 다시 시도해 주세요.';
+        } finally { button.disabled = false; }
+      });
+      links.append(button);
+    }
     $('person-links').replaceChildren(links);
     const meta = document.createDocumentFragment();
     for (const [label, value] of [['신청', date(item.created_at)], ['동의', date(item.consent_at)], ['동의 버전', item.consentVersion || '이전 양식'], ['신청 위치', item.sourceContext || '이전 양식'], ['최근 관리', date(item.updatedAt || item.created_at)]]) meta.append(node('dt', label), node('dd', value));

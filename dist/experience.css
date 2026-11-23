@@ -463,12 +463,13 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
 @media(hover:none){.venture-track[data-layout="index"] .venture-open:hover{background:transparent}.wall-work:hover img,.screen-feature:hover>img{transform:none}}
 
 /* Login-free career originals; article titles remain source-linked. */
-.career-detail{margin-top:18px;border-top:1px solid #ddd}
-.career-detail summary{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:20px;cursor:pointer;list-style:none;font-size:14px}
-.career-detail summary::-webkit-details-marker{display:none}.career-detail summary>span{font-size:21px;transition:transform .25s}
+.career-detail{margin-top:12px}
+.career-detail summary{display:grid;place-items:center;width:44px;height:44px;margin-inline-start:auto;border:1px solid #9ba0a2;border-radius:50%;cursor:pointer;list-style:none}
+.career-detail summary::-webkit-details-marker{display:none}.career-detail summary>span{font-size:23px;line-height:1;transition:transform .25s}
+.career-detail summary[aria-label]:active{background:#dfe2e3}
 .career-detail[open] summary>span{transform:rotate(45deg)}
 .career-detail .career-original-note{font-size:13px;line-height:1.8;color:#595959;max-width:40em;margin:8px 0 22px}
-.career-original{white-space:pre-wrap;font-size:16px;line-height:1.9;overflow-wrap:anywhere;padding-bottom:24px}
+.career-original{white-space:pre-wrap;font-size:16px;line-height:1.9;overflow-wrap:anywhere;padding-block:16px 24px}
 .linkedin-archive blockquote{white-space:pre-line}
 .career-links{grid-column:1/-1;margin-top:30px;padding-top:32px;border-top:1px solid #111;display:grid;grid-template-columns:1fr 2fr;gap:30px 70px}
 .career-links-heading h3{font-size:25px;font-weight:400;margin:0 0 14px}.career-links-heading p{font-size:14px;line-height:1.8;color:#595959}
@@ -549,8 +550,10 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
 .actor-profile-facts { margin:0 0 24px; }
 .actor-profile-facts p { margin:8px 0; font-size:15px; line-height:1.8; }
 .actor-profile-facts small { color:#aaa; font-size:12px; letter-spacing:0; }
-.career-journey { display:grid; grid-template-columns:1fr 1fr; margin:48px 0 44px; gap:6%; }
-.career-journey article { border-top:1px solid #080808; padding-top:24px; }
+.career-section { background:#eef0f1; border-block:1px solid #d9dddf; padding-block:clamp(52px,8vw,110px); }
+.career-intro { max-width:42ch; margin:0; white-space:pre-line; font-size:clamp(19px,2.6vw,33px); line-height:1.65; letter-spacing:-.025em; word-break:keep-all; overflow-wrap:anywhere; }
+.career-journey { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); margin:clamp(28px,5vw,52px) 0 0; gap:clamp(12px,3vw,36px); }
+.career-journey article { background:#fff; border-top:2px solid #080808; padding:clamp(20px,3vw,34px); }
 .career-journey article>span { font-size:13px; }
 .career-journey h3 { font-family:var(--korean-serif); font-size:clamp(24px,3vw,36px); font-weight:400; line-height:1.6; margin:24px 0 16px; }
 .career-journey p { font-size:16px; line-height:1.9; color:var(--secondary); max-width:40ch; }
@@ -558,7 +561,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
 .education-detail { margin-top:24px; font-size:14px; }
 .education-detail p { color:var(--secondary); line-height:1.9; }
 @media(max-width:760px) {
- .career-journey { grid-template-columns:1fr; gap:40px; margin-top:30px; }
+ .career-journey { grid-template-columns:1fr; }
  .career-journey h3 { margin-top:20px; }
 }
 .profile-overview .brand-intro>div, .career-journey p, .career-journey h3 { word-break:keep-all; overflow-wrap:break-word; }

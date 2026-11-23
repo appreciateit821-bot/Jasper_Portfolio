@@ -256,19 +256,18 @@
     track.addEventListener('click',event=>{if(blockClick && event.detail!==0){event.preventDefault();event.stopImmediatePropagation();}},true);
     new ResizeObserver(schedule).observe(track);
     document.addEventListener('jasper:motionchange',()=>{track.scrollTo({left:track.scrollLeft,behavior:'instant'});schedule();});
-    const shuffleButton=shell.querySelector('[data-rail-shuffle]');
-    if(shuffleButton) {
-      function shuffle(announce=false) {
-        const keep=Number(shuffleButton.dataset.railShuffle) || 0;
-        const fixed=slides.slice(0,keep),tail=slides.slice(keep),before=[...tail];
-        for(let i=tail.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[tail[i],tail[j]]=[tail[j],tail[i]];}
-        if(tail.length>1 && tail.every((node,i)=>node===before[i]))tail.push(tail.shift());
-        slides=[...fixed,...tail];track.append(...slides);
-        track.scrollTo({left:0,behavior:'instant'});update();
-        if(announce)shell.querySelector('.rail-status').textContent='새로운 순서로 보여드립니다.';
+    if (shell.dataset.railShuffle !== undefined) {
+      const keep = Number(shell.dataset.railShuffle);
+      const tail = slides.slice(keep);
+      const original = [...tail];
+      for (let i = tail.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tail[i], tail[j]] = [tail[j], tail[i]];
       }
-      shuffleButton.addEventListener('click',()=>shuffle(true));
-      shuffle();
+      if (tail.length > 1 && tail.every((slide, index) => slide === original[index])) tail.push(tail.shift());
+      slides = [...slides.slice(0, keep), ...tail];
+      track.append(...tail);
+      track.scrollTo({ left: 0, behavior: 'instant' });
     }
     update();
   });
@@ -458,10 +457,7 @@
         const back = document.createElement('button'); back.type = 'button';
         back.className = 'reading-back'; back.textContent = '글 목록으로 돌아가기';
         back.addEventListener('click', () => dismissDialog(artDialog));
-        const connect = document.createElement('button'); connect.type = 'button';
-        connect.className = 'reading-connect connection-primary'; connect.textContent = '글로 함께하기';
-        connect.dataset.connect = 'art'; connect.dataset.interest = 'writing'; connect.dataset.sourceContext = `work:${key}`;
-        artVisual.append(end, back, connect);
+        artVisual.append(end, back);
       }
       const mediumNoun = work.kind === 'writing' ? '글' : work.kind === 'acting' ? '영상' : '작품';
       previousWork.textContent = `← 이전 ${mediumNoun}`;
@@ -564,7 +560,11 @@
 
   const connectDialog = document.getElementById('connect-dialog');
   const form = document.getElementById('connect-form');
-  const brand = document.getElementById('brand-select');
+  const projectsField = document.getElementById('brand-label');
+  const legacyBrand = document.getElementById('brand-select');
+  const attachmentField = document.getElementById('application-attachment-field');
+  const attachmentInput = document.getElementById('application-attachment');
+  const maxAttachmentBytes = 1024 * 1024;
   const purpose = document.getElementById('connection-purpose');
   const feedback = document.getElementById('form-feedback');
   const connections = {
@@ -574,19 +574,19 @@
       question: '어떤 사람인지, 무엇에 관심이 있는지 알려주세요.'
     },
     partner: {
-      title: '브랜드 채용',
-      description: 'AI를 잘 쓰거나, 미감이 높은 분을 찾습니다. 둘 중 하나만 해당해도 좋습니다. 원하는 브랜드를 맡아 운영하고 키워갈 수 있습니다.',
-      question: '본인 소개와 맡고 싶은 브랜드, 잘하는 일을 알려주세요.'
+      title: '프로젝트 파트너',
+      description: 'AI를 잘 활용하거나 미감이 뛰어난 분과 프로젝트를 함께 운영하고 키웁니다. 수익은 각자의 기여에 따라 나눕니다.',
+      question: '자기소개와 함께 어떤 강점을 보태고 싶은지 알려주세요.'
     },
     art: {
-      title: '함께 만드는 작업',
-      description: '그림과 전시, 영화와 연기, 글로 함께 만들어 보고 싶은 것을 들려주세요. 서로의 경험과 감각이 만나는 작업을 기다립니다.',
-      question: '본인 소개와 함께 만들고 싶은 작업을 들려주세요.'
+      title: '예술 작업 함께하기',
+      description: '함께 만들어보고 싶은 장면이나 그림이 있나요? 아이디어가 막 떠오른 단계여도 좋아요.',
+      question: '나에 대한 짧은 소개와 해보고 싶은 작업을 들려주세요.'
     },
     lab: {
       title: '재스퍼의 실험실',
-      description: '다양한 직업과 가치관을 가진 사람들이 모이는 소규모 모임입니다. 서로의 생각과 관심사를 나누고 싶다면 자기소개와 함께 신청해 주세요.',
-      question: '어떤 일을 하고, 무엇에 관심이 있나요? 본인을 소개해 주세요.'
+      description: '가끔 오프라인에서 만나 각자의 관심사를 나눠요. 다음 모임이 궁금하다면 짧게 소개를 남겨주세요.',
+      question: '요즘 어떤 이야기에 꽂혀 있나요? 편하게 들려주세요.'
     }
   };
   let applicationId = null;
@@ -609,8 +609,10 @@
       document.getElementById('connect-title').textContent = connection.title;
       document.getElementById('connect-description').textContent = connection.description;
       document.getElementById('question-copy').textContent = connection.question;
-      document.getElementById('brand-label').hidden = key !== 'partner';
-      brand.disabled = key !== 'partner';
+      const partner = key === 'partner';
+      projectsField.hidden = projectsField.disabled = !partner;
+      if (legacyBrand) legacyBrand.disabled = !partner;
+      if (attachmentInput) attachmentField.hidden = attachmentInput.disabled = !partner;
       applicationButton.textContent = localFile ? '작성 내용 확인하기' : key === 'connect' ? '관심 남기기' : '소개 남기기';
       feedback.hidden = true;
   }
@@ -625,7 +627,14 @@
     const nextSource = button.dataset.sourceContext || 'direct';
     if (sourceContext !== nextSource) applicationId = null;
     sourceContext = nextSource;
-    if (button.dataset.brand) brand.value = button.dataset.brand;
+    if (button.dataset.brand && button.dataset.connect === 'partner') {
+      if (legacyBrand && legacyBrand.value !== button.dataset.brand) {
+        legacyBrand.value = button.dataset.brand;
+        applicationId = null;
+      }
+      const project = [...form.querySelectorAll('[name="projects"]')].find(input => input.value === button.dataset.brand);
+      if (project && !project.checked) { project.checked = true; applicationId = null; }
+    }
     // Add the clicked context without discarding other interests or a draft.
     const selectedInterest = button.dataset.interest || ({partner:'partner',lab:'lab'}[button.dataset.connect]);
     if (selectedInterest) {
@@ -648,10 +657,24 @@
     profileInput.setCustomValidity(valid ? '' : 'https://로 시작하는 공개 프로필 링크를 입력해 주세요.');
   }
   profileInput.addEventListener('input', validateProfileUrl);
+  function validateAttachment() {
+    if (!attachmentInput || attachmentInput.disabled) return;
+    const file = attachmentInput.files[0];
+    const error = !file ? '' : file.size > maxAttachmentBytes ? '첨부 파일은 1MB까지 올릴 수 있어요.' :
+      !file.size || !/\.(pdf|jpe?g|png)$/i.test(file.name) ? 'PDF, JPG 또는 PNG 파일을 선택해 주세요.' : '';
+    attachmentInput.setCustomValidity(error);
+  }
+  attachmentInput?.addEventListener('change', () => {
+    applicationId = null;
+    feedback.hidden = true;
+    validateAttachment();
+    attachmentInput.reportValidity();
+  });
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (submitting) return;
     validateProfileUrl();
+    validateAttachment();
     if (!form.reportValidity()) return;
     if (localFile) {
       feedback.textContent = '작성 내용을 확인했습니다. 로컬 미리보기이므로 전송·저장하지 않았습니다.';
@@ -660,7 +683,11 @@
     }
     const data = new FormData(form);
     applicationId ||= crypto.randomUUID();
-    const payload = {id:applicationId, purpose:purpose.value, name:String(data.get('name') || '').trim(), email:String(data.get('email') || '').trim(), brand:brand.disabled?'':brand.value, message:String(data.get('message') || '').trim(), consent:data.get('consent')==='on', website:String(data.get('website') || ''), interests:data.getAll('interests'), profileUrl:String(data.get('profileUrl') || '').trim(), sourceContext, consentVersion:'2026-11-23'};
+    const projects = purpose.value === 'partner' ? data.getAll('projects') : [];
+    const legacyProject = purpose.value === 'partner' ? data.get('brand') : '';
+    if (legacyProject && !projects.length) projects.push(legacyProject);
+    const file = purpose.value === 'partner' ? data.get('attachment') : null;
+    const payload = {id:applicationId, purpose:purpose.value, name:String(data.get('name') || '').trim(), email:String(data.get('email') || '').trim(), brand:projects[0] || '', projects, message:String(data.get('message') || '').trim(), consent:data.get('consent')==='on', website:String(data.get('website') || ''), interests:data.getAll('interests'), profileUrl:String(data.get('profileUrl') || '').trim(), sourceContext, consentVersion:attachmentInput ? '2026-11-24' : '2026-11-23'};
     submitting = true; applicationButton.disabled = true; applicationButton.textContent = '보내는 중…';
     applicationButton.dataset.state = 'pending';
     // Preserve exactly the submitted values while a request is pending.
@@ -668,15 +695,22 @@
     const disabledBefore = controls.map(control => control.disabled);
     controls.forEach(control => control.disabled = true);
     try {
+      if (file?.size) {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = '';
+        for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+        payload.attachment = {name: file.name, content: btoa(binary)};
+      }
       const response = await fetch('/api/applications', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
       const result = await response.json();
+      if (result.error === 'INVALID_ATTACHMENT') throw new Error('첨부 파일 형식을 확인해 주세요. PDF, JPG, PNG 파일만 받을 수 있어요.');
       if (!response.ok || result.id !== applicationId) throw new Error(response.status === 429 ? '잠시 후 다시 신청해 주세요.' : '접수하지 못했습니다. 작성 내용은 그대로 있으니 다시 시도하거나 이메일로 보내 주세요.');
       feedback.textContent = '소개를 잘 받았습니다. 함께할 일이 생기면 남겨주신 이메일로 연락드릴게요.';
       feedback.dataset.state = 'success';
       form.reset(); applicationId = null;
     } catch (error) {
       feedback.dataset.state = 'error';
-      feedback.textContent = error.message?.startsWith('잠시') || error.message?.startsWith('접수하지') ? error.message : '접수 여부를 확인하지 못했습니다. 작성 내용은 그대로 있습니다. 다시 누르면 중복 없이 접수 여부를 확인합니다.';
+      feedback.textContent = /^(잠시|접수하지|첨부 파일)/.test(error.message || '') ? error.message : '접수 여부를 확인하지 못했습니다. 작성 내용은 그대로 있습니다. 다시 누르면 중복 없이 접수 여부를 확인합니다.';
     } finally {
       controls.forEach((control,index) => control.disabled=disabledBefore[index]);
       submitting=false; applicationButton.disabled=false; applicationButton.textContent=purpose.value==='connect'?'관심 남기기':'소개 남기기';
