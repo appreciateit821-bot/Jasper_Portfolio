@@ -412,13 +412,12 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
 .reading-end{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #bbb;margin-top:48px;padding-top:18px}
 .reading-end button{min-height:48px;min-width:100px;font-size:15px}
 .reading-end button:disabled{opacity:.35}
-.linkedin-archive{grid-column:2;border-top:1px solid #ccc;padding-top:25px}
+.linkedin-archive{grid-column:1/-1;background:#fff;border:1px solid #d2d2d2;margin-top:clamp(10px,2vw,28px);padding:clamp(12px,3vw,32px)}
 .linkedin-archive blockquote{margin:18px 0;font-size:21px}
 .linkedin-archive .archive-source-label{font-size:12px;letter-spacing:.08em}
 .linkedin-archive .archive-source-date{font-size:13px;color:#595959;line-height:1.8}
 .linkedin-archive a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;text-decoration:underline;text-underline-offset:5px}
 #career-archive{scroll-margin-top:120px}
-@media(max-width:850px){.linkedin-archive{grid-column:1}}
 @media(max-width:760px){
  html{scroll-padding-top:110px}
  .site-header.page-width,.site-header.is-past-opening{height:104px;padding-top:8px}
@@ -471,22 +470,18 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
 .career-detail .career-original-note{font-size:13px;line-height:1.8;color:#595959;max-width:40em;margin:8px 0 22px}
 .career-original{white-space:pre-wrap;font-size:16px;line-height:1.9;overflow-wrap:anywhere;padding-block:16px 24px}
 .linkedin-archive blockquote{white-space:pre-line}
-.career-links{grid-column:1/-1;margin-top:30px;padding-top:32px;border-top:1px solid #111;display:grid;grid-template-columns:1fr 2fr;gap:30px 70px}
-.career-links-heading h3{font-size:25px;font-weight:400;margin:0 0 14px}.career-links-heading p{font-size:14px;line-height:1.8;color:#595959}
+.career-links{padding-top:18px;border-top:1px solid #d2d2d2}
+.career-links h5{font-size:16px;font-weight:600;margin:0 0 4px}
 .career-links ol{margin:0;padding:0;list-style:none}.career-links li{border-bottom:1px solid #ccc}
-.career-links li a{display:grid;grid-template-columns:25px minmax(0,1fr) 20px;gap:14px;padding:23px 0;align-items:start;text-decoration:none}
-.career-links li strong{font-weight:400;font-size:18px;line-height:1.65;overflow-wrap:anywhere}.career-links li small{display:block;margin-top:9px;color:#595959;font-size:12px}.career-link-number{font-size:12px;line-height:2.4;color:#595959}
+.career-links li a{display:grid;grid-template-columns:clamp(52px,8vw,96px) minmax(0,1fr) 14px;gap:12px;padding:14px 0;align-items:center;text-decoration:none}
+.career-links li strong{font-weight:400;font-size:15px;line-height:1.6;overflow-wrap:anywhere}.career-links li small{display:block;margin-top:6px;color:#595959;font-size:12px}
 .career-links li a:hover strong{text-decoration:underline;text-underline-offset:5px}
-@media(max-width:850px){.career-links{grid-template-columns:1fr;gap:10px}.career-links-heading p br{display:none}}
-@media(max-width:600px){.career-original{font-size:16px;line-height:1.95}.career-links li strong{font-size:16px}.career-links li a{gap:10px;padding-block:20px}.career-detail summary{font-size:15px}.career-records dt{font-size:13px}}
+@media(max-width:600px){.career-original{font-size:16px;line-height:1.95}.career-detail summary{font-size:15px}.career-records dt{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.career-detail summary>span{transition:none}}
 .motion-paused .career-detail summary>span{transition:none}
-.career-links li a{grid-template-columns:150px minmax(0,1fr) 20px;gap:22px;align-items:center}
 .career-link-image{display:grid;place-items:center;aspect-ratio:4/3;background:#f3f3f1;overflow:hidden}.career-link-image img{display:block;width:100%;height:100%;object-fit:contain}
 .career-link-fallback{display:flex;flex-direction:column;justify-content:center;align-items:center;aspect-ratio:4/3;border:1px solid #ddd;color:#595959}.career-link-fallback small{font-size:10px!important;letter-spacing:.12em;margin:0!important}.career-link-fallback>span{font:italic 38px/1.3 Georgia,serif}
-.career-links-heading .press-image-credit{font-size:12px;margin-top:18px;color:#595959}
-@media(max-width:600px){.career-links li a{grid-template-columns:96px minmax(0,1fr) 14px;gap:12px}.career-links li strong{font-size:15px;line-height:1.6}.career-links li small{font-size:11px}.career-link-fallback>span{font-size:30px}}
-@media(max-width:380px){.career-links li a{grid-template-columns:80px minmax(0,1fr) 12px;gap:10px}}
+@media(max-width:600px){.career-link-fallback>span{font-size:22px}}
 
 /* Reviewed Drive portraits: an editorial pair, a profile and a personal invitation. */
 .portrait-open { display:block; position:relative; width:100%; padding:0; background:none; color:inherit; text-align:left; }
@@ -551,20 +546,23 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid cur
 .actor-profile-facts p { margin:8px 0; font-size:15px; line-height:1.8; }
 .actor-profile-facts small { color:#aaa; font-size:12px; letter-spacing:0; }
 .career-section { background:#eef0f1; border-block:1px solid #d9dddf; padding-block:clamp(52px,8vw,110px); }
-.career-intro { max-width:42ch; margin:0; white-space:pre-line; font-size:clamp(19px,2.6vw,33px); line-height:1.65; letter-spacing:-.025em; word-break:keep-all; overflow-wrap:anywhere; }
-.career-journey { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); margin:clamp(28px,5vw,52px) 0 0; gap:clamp(12px,3vw,36px); }
+.career-intro { max-width:42ch; margin:0; white-space:pre-line; font-size:clamp(24px,3vw,42px); font-weight:700; line-height:1.45; letter-spacing:-.025em; word-break:keep-all; overflow-wrap:anywhere; }
+#about .career-records { margin-top:0; padding-top:0; border-top:0; }
+.career-records-heading { grid-column:1/-1; }
+.career-journey { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:clamp(12px,3vw,36px); }
 .career-journey article { background:#fff; border-top:2px solid #080808; padding:clamp(20px,3vw,34px); }
 .career-journey article>span { font-size:13px; }
-.career-journey h3 { font-family:var(--korean-serif); font-size:clamp(24px,3vw,36px); font-weight:400; line-height:1.6; margin:24px 0 16px; }
+.career-journey h4 { font-size:clamp(24px,3vw,36px); font-weight:400; line-height:1.4; margin:12px 0 4px; }
+.career-journey .career-meta { font-size:13px; margin:0; }
+.career-journey .career-summary { white-space:pre-line; }
 .career-journey p { font-size:16px; line-height:1.9; color:var(--secondary); max-width:40ch; }
-.career-journey strong { display:block; font-size:14px; font-weight:500; margin-top:24px; line-height:1.8; }
+.career-journey article>strong { display:block; font-size:15px; font-weight:700; margin-top:16px; line-height:1.8; }
 .education-detail { margin-top:24px; font-size:14px; }
 .education-detail p { color:var(--secondary); line-height:1.9; }
 @media(max-width:760px) {
  .career-journey { grid-template-columns:1fr; }
- .career-journey h3 { margin-top:20px; }
 }
-.profile-overview .brand-intro>div, .career-journey p, .career-journey h3 { word-break:keep-all; overflow-wrap:break-word; }
+.profile-overview .brand-intro>div, .career-journey p, .career-journey h4 { word-break:keep-all; overflow-wrap:break-word; }
 
 /* Reader and touch controls — authored for Jasper's existing Cinema components. */
 .art-dialog[data-kind="writing"] .art-original-text{white-space:normal;max-width:34em;margin-inline:auto}
@@ -1615,7 +1613,7 @@ body,body *,body *::before,body *::after{font-family:var(--sans)!important}
 .social-preview-copy>span{font-size:13px;line-height:1.6;color:#595959;overflow-wrap:anywhere}
 .social-preview-arrow{font-size:21px;justify-self:end}
 .social-preview:focus-visible{outline:2px solid currentColor;outline-offset:5px}
-.linkedin-archive .social-preview{margin-top:28px}
+.linkedin-archive .social-preview+.social-preview{margin-top:12px}
 .correspondence .instagram-preview{margin-top:24px;border-color:#414141}
 .correspondence .instagram-preview .social-preview-copy small,
 .correspondence .instagram-preview .social-preview-copy>span{color:#bcbcbc}

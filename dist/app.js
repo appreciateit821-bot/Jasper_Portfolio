@@ -102,7 +102,7 @@
   const paintings = catalog.filter(work => work.kind === 'painting');
   const counts = Object.fromEntries(['painting', 'acting', 'writing'].map(kind => [kind, catalog.filter(work => work.kind === kind).length]));
   const works = {
-    acting: { kind: 'acting', type: 'ACTING & FILM', title: '연기와 장면', description: '연기 영상의 원본을 이곳에 정리하고 있습니다. 유튜브 채널에서도 기록을 확인할 수 있습니다.', link: 'https://www.youtube.com/@life_by_play', linkLabel: 'YouTube에서 연기 기록 보기' },
+    acting: { kind: 'acting', type: 'ACTING & FILM', title: '연기와 장면', description: '' },
     writing: { kind: 'writing', type: 'WORDS & NOTES', title: '창작글과 기록', description: '인스타그램에 남긴 창작글과 기록을 이곳에 정리하고 있습니다. 원문은 개인 계정에서 확인할 수 있습니다.', link: 'https://www.instagram.com/KDH_SMILE/', linkLabel: 'Instagram에서 원문 보기' },
     ...Object.fromEntries(catalog.map(work => [work.id, work]))
   };
@@ -151,7 +151,7 @@
       document.getElementById('expression-title').textContent = expressionNames[key];
       document.getElementById('expression-note').textContent = counts[key]
         ? `${expressionNames[key]} ${countLabel(key)}`
-        : key === 'acting' ? 'YouTube에서 연기 기록 보기' : '원문 수집·정리 중';
+        : '원문 수집·정리 중';
       expressionVisual.style.removeProperty('--preview-x');
       expressionVisual.style.removeProperty('--preview-y');
       if (!motionPaused) {
@@ -256,18 +256,44 @@
     track.addEventListener('click',event=>{if(blockClick && event.detail!==0){event.preventDefault();event.stopImmediatePropagation();}},true);
     new ResizeObserver(schedule).observe(track);
     document.addEventListener('jasper:motionchange',()=>{track.scrollTo({left:track.scrollLeft,behavior:'instant'});schedule();});
-    if (shell.dataset.railShuffle !== undefined) {
-      const keep = Number(shell.dataset.railShuffle);
-      const tail = slides.slice(keep);
-      const original = [...tail];
+    const actingVideos = slides.filter(slide => slide.dataset?.actingMedia === 'video');
+    function shuffled(original) {
+      const tail = [...original];
       for (let i = tail.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [tail[i], tail[j]] = [tail[j], tail[i]];
       }
-      if (tail.length > 1 && tail.every((slide, index) => slide === original[index])) tail.push(tail.shift());
+      return tail;
+    }
+    function shuffle(keep, changeFirst = false) {
+      if (actingVideos.length >= 2) {
+        const photos = shuffled(slides.filter(slide => slide.dataset.actingMedia === 'photo'));
+        const [first, third, ...remainingVideos] = shuffled(actingVideos);
+        slides = [first, ...photos];
+        slides.splice(2, 0, third);
+        actingVideos.forEach(slide => { slide.hidden = remainingVideos.includes(slide); });
+        track.append(...slides, ...remainingVideos);
+        track.scrollTo({ left: 0, behavior: 'instant' });
+        return;
+      }
+      const original = slides.slice(keep);
+      const tail = shuffled(original);
+      if (tail.length > 1 && (changeFirst ? tail[0] === original[0] : tail.every((slide, index) => slide === original[index]))) {
+        tail.push(tail.shift());
+      }
       slides = [...slides.slice(0, keep), ...tail];
       track.append(...tail);
       track.scrollTo({ left: 0, behavior: 'instant' });
+    }
+    if (shell.dataset.railShuffle !== undefined) {
+      shuffle(Number(shell.dataset.railShuffle));
+      document.querySelectorAll(`.medium-nav a[aria-controls="${track.id}"]`).forEach(link => {
+        link.addEventListener('click', event => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          shuffle(0, true);
+          schedule();
+        });
+      });
     }
     update();
   });
@@ -327,7 +353,7 @@
       video.preload = 'metadata';
       video.src = work.video;
       if (work.poster) video.poster = work.poster;
-      video.setAttribute('aria-label', work.title);
+      video.setAttribute('aria-label', work.kind === 'acting' ? '연기 영상' : work.title);
       video.textContent = '브라우저에서 이 영상을 재생할 수 없습니다.';
       artVisual.append(video);
       const directLink = document.createElement('a');
@@ -348,12 +374,12 @@
         player.append(poster);
       }
       const label = document.createElement('span');
-      label.textContent = `${work.title} 재생`;
+      label.textContent = '영상 재생';
       player.append(label);
       player.addEventListener('click', () => {
         const frame = document.createElement('iframe');
         frame.src = `https://www.youtube-nocookie.com/embed/${work.youtubeId}?autoplay=1`;
-        frame.title = work.title;
+        frame.title = '연기 영상';
         frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
         frame.allowFullscreen = true;
         frame.referrerPolicy = 'strict-origin-when-cross-origin';
@@ -414,10 +440,10 @@
         artZoom.disabled = !work.image;
       }
       if (artFollow) {
-        const fallbackLink = work.kind === 'acting' ? 'https://www.youtube.com/@life_by_play'
-          : work.kind === 'writing' ? 'https://www.instagram.com/KDH_SMILE/' : 'https://www.instagram.com/jasperkim_official/';
+        artFollow.hidden = work.kind === 'acting';
+        const fallbackLink = work.kind === 'writing' ? 'https://www.instagram.com/KDH_SMILE/' : 'https://www.instagram.com/jasperkim_official/';
         artFollow.href = work.link || fallbackLink;
-        artFollow.querySelector('span').textContent = work.linkLabel || (work.link ? '원문 출처 보기' : work.kind === 'acting' ? 'YouTube에서 연기 기록 보기' : work.kind === 'writing' ? 'Instagram에서 기록 보기' : 'Instagram에서 그림 기록 보기');
+        artFollow.querySelector('span').textContent = work.linkLabel || (work.link ? '원문 출처 보기' : work.kind === 'writing' ? 'Instagram에서 기록 보기' : 'Instagram에서 그림 기록 보기');
       }
       activeWork = workSequence.indexOf(key);
       const layout = artDialog.querySelector('.art-layout');
@@ -427,17 +453,19 @@
       artDialog.dataset.work = key;
       artDialog.querySelector('.presentation-controls')?.remove();
       artDialog.classList.toggle('dark', work.kind === 'acting');
-      document.getElementById('art-type').textContent = work.kind === 'writing' ? '창작글 — 상상으로 쓴 이야기' : work.type;
+      const workType = document.getElementById('art-type');
+      workType.textContent = work.kind === 'writing' ? '' : work.type;
+      workType.hidden = work.kind === 'writing';
       const collaborate = artDialog.querySelector('[data-connect]');
       if (collaborate) {
         collaborate.dataset.interest = work.kind === 'acting' ? 'film' : work.kind;
         collaborate.dataset.sourceContext = `work:${key}`;
       }
       const titleNode=document.getElementById('art-title');
-      titleNode.textContent = work.kind==='writing' ? '글 읽기' : work.title;
-      titleNode.classList.toggle('sr-only',work.kind==='writing');
+      titleNode.textContent = work.kind === 'acting' ? '연기 영상' : work.kind === 'writing' ? '글 읽기' : work.title;
+      titleNode.classList.toggle('sr-only', work.kind !== 'painting');
       document.getElementById('art-description').textContent = work.description;
-      document.getElementById('art-description').hidden = work.kind==='writing' || !work.description;
+      document.getElementById('art-description').hidden = work.kind !== 'painting' || !work.description;
       artVisual.replaceChildren();
       renderMedia(work);
       if (work.kind === 'writing') {
@@ -492,7 +520,7 @@
         ? [...archiveItems.querySelectorAll('[data-art]')].filter(item => !item.hidden && item.dataset.kind === works[button.dataset.art].kind).map(item => item.dataset.art)
         : catalog.some(work => work.id === button.dataset.art) ? catalog.filter(work => work.kind === works[button.dataset.art].kind).map(work => work.id) : [button.dataset.art];
       const track=button.closest('.rail-track');
-      if(track)workSequence=[...track.querySelectorAll('[data-art]')].map(item=>item.dataset.art);
+      if(track)workSequence=[...track.querySelectorAll('.rail-slide:not([hidden]) [data-art]')].map(item=>item.dataset.art);
       showWork(button.dataset.art, button);
     });
   });
@@ -561,7 +589,12 @@
   const connectDialog = document.getElementById('connect-dialog');
   const form = document.getElementById('connect-form');
   const projectsField = document.getElementById('brand-label');
-  const legacyBrand = document.getElementById('brand-select');
+  const artInterests = document.getElementById('art-interests');
+  const labInterests = document.getElementById('lab-interests');
+  const phoneField = document.getElementById('application-phone-field');
+  const phoneInput = form.querySelector('[name="phone"]');
+  const profileInput = form.querySelector('[name="profileUrl"]');
+  const messageInput = form.querySelector('[name="message"]');
   const attachmentField = document.getElementById('application-attachment-field');
   const attachmentInput = document.getElementById('application-attachment');
   const maxAttachmentBytes = 1024 * 1024;
@@ -575,7 +608,7 @@
     },
     partner: {
       title: '프로젝트 파트너',
-      description: 'AI를 잘 활용하거나 미감이 뛰어난 분과 프로젝트를 함께 운영하고 키웁니다. 수익은 각자의 기여에 따라 나눕니다.',
+      description: 'AI를 압도적으로 잘 쓰고 계신가요?\n미적 감각이 탁월하다고 생각하시나요?\n\n서비스마다 필요한 동료는 1-2명이면 충분해요.',
       question: '자기소개와 함께 어떤 강점을 보태고 싶은지 알려주세요.'
     },
     art: {
@@ -585,7 +618,7 @@
     },
     lab: {
       title: '재스퍼의 실험실',
-      description: '가끔 오프라인에서 만나 각자의 관심사를 나눠요. 다음 모임이 궁금하다면 짧게 소개를 남겨주세요.',
+      description: '오프라인 모임 일정이 잡히면 남겨주신 이메일로 안내드릴게요.',
       question: '요즘 어떤 이야기에 꽂혀 있나요? 편하게 들려주세요.'
     }
   };
@@ -594,12 +627,35 @@
   let submitting = false;
   let connectOpener = null;
   const applicationButton = form.querySelector('[type="submit"]');
+  const fields = document.getElementById('application-fields');
+  const review = document.getElementById('application-review');
+  const reviewDetails = document.getElementById('application-review-details');
+  const confirmButton = document.getElementById('application-confirm');
+  const editButton = document.getElementById('application-edit');
+  let reviewedApplication = null;
+
+  function closeReview() {
+    reviewedApplication = null;
+    fields.hidden = false;
+    review.hidden = true;
+    reviewDetails.replaceChildren();
+    purpose.disabled = false;
+  }
+  editButton.addEventListener('click', () => {
+    closeReview();
+    feedback.hidden = true;
+    applicationButton.focus();
+  });
   const localFile = !['http:', 'https:'].includes(location.protocol);
   if (localFile) {
-    document.getElementById('application-note').textContent = '로컬 화면에서는 전송되지 않습니다. 공개 후 이곳에서 신청할 수 있습니다.';
-    applicationButton.textContent = '작성 내용 확인하기';
+    const note = document.getElementById('application-note');
+    note.textContent = '로컬 화면에서는 전송되지 않습니다. 공개 후 이곳에서 신청할 수 있습니다.';
+    note.hidden = false;
   }
-  connectDialog.addEventListener('close', () => connectOpener?.focus({preventScroll:true}));
+  connectDialog.addEventListener('close', () => {
+    if (!submitting) closeReview();
+    connectOpener?.focus({preventScroll:true});
+  });
 
   function setPurpose(key) {
       const connection = connections[key];
@@ -611,9 +667,12 @@
       document.getElementById('question-copy').textContent = connection.question;
       const partner = key === 'partner';
       projectsField.hidden = projectsField.disabled = !partner;
-      if (legacyBrand) legacyBrand.disabled = !partner;
+      artInterests.hidden = artInterests.disabled = key !== 'art';
+      labInterests.hidden = labInterests.disabled = key !== 'lab';
+      phoneField.hidden = phoneInput.disabled = key === 'lab';
+      closeReview();
+      messageInput.setCustomValidity('');
       if (attachmentInput) attachmentField.hidden = attachmentInput.disabled = !partner;
-      applicationButton.textContent = localFile ? '작성 내용 확인하기' : key === 'connect' ? '관심 남기기' : '소개 남기기';
       feedback.hidden = true;
   }
 
@@ -628,15 +687,11 @@
     if (sourceContext !== nextSource) applicationId = null;
     sourceContext = nextSource;
     if (button.dataset.brand && button.dataset.connect === 'partner') {
-      if (legacyBrand && legacyBrand.value !== button.dataset.brand) {
-        legacyBrand.value = button.dataset.brand;
-        applicationId = null;
-      }
       const project = [...form.querySelectorAll('[name="projects"]')].find(input => input.value === button.dataset.brand);
       if (project && !project.checked) { project.checked = true; applicationId = null; }
     }
     // Add the clicked context without discarding other interests or a draft.
-    const selectedInterest = button.dataset.interest || ({partner:'partner',lab:'lab'}[button.dataset.connect]);
+    const selectedInterest = button.dataset.connect === 'art' ? button.dataset.interest : null;
     if (selectedInterest) {
       const checkbox = [...form.querySelectorAll('[name="interests"]')].find(input => input.value === selectedInterest);
       if (checkbox && !checkbox.checked) { checkbox.checked = true; applicationId = null; }
@@ -646,17 +701,25 @@
     document.getElementById('connect-title').focus({ preventScroll: true });
   });
 
-  form.addEventListener('input', () => { feedback.hidden = true; applicationId = null; });
-  const profileInput = form.querySelector('[name="profileUrl"]');
-  function validateProfileUrl() {
-    const value = profileInput.value.trim();
-    let valid = !value;
-    if (value) {
-      try { const url = new URL(value); valid = url.protocol === 'https:' && !url.username && !url.password; } catch (_) {}
-    }
-    profileInput.setCustomValidity(valid ? '' : 'https://로 시작하는 공개 프로필 링크를 입력해 주세요.');
+  form.addEventListener('input', event => {
+    feedback.hidden = true; applicationId = null;
+    event.target.setCustomValidity?.('');
+  });
+  function readProfileLinks() {
+    const links = profileInput.value.split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+    const valid = links.length <= 5 && links.every(value => {
+      try { const url = new URL(value); return value.length <= 2048 && url.protocol === 'https:' && !url.username && !url.password; }
+      catch { return false; }
+    });
+    profileInput.setCustomValidity(valid ? '' : 'https://로 시작하는 링크를 한 줄에 하나씩 최대 5개 입력해 주세요.');
+    return links;
   }
-  profileInput.addEventListener('input', validateProfileUrl);
+  function validatePhone() {
+    const value = phoneInput.value.trim();
+    const digitCount = value.replace(/\D/g, '').length;
+    const valid = phoneInput.disabled || (/^\+?[0-9() -]+$/.test(value) && digitCount >= 7 && digitCount <= 15);
+    phoneInput.setCustomValidity(valid ? '' : '연락받을 휴대폰 번호를 입력해 주세요.');
+  }
   function validateAttachment() {
     if (!attachmentInput || attachmentInput.disabled) return;
     const file = attachmentInput.files[0];
@@ -672,27 +735,64 @@
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    if (submitting) return;
-    validateProfileUrl();
+    if (submitting || reviewedApplication) return;
+    const profileUrls = readProfileLinks();
+    validatePhone();
+    const minimum = purpose.value === 'connect' ? 1 : 10;
+    messageInput.setCustomValidity(messageInput.value.trim().length < minimum
+      ? (minimum === 1 ? '짧은 소개를 남겨 주세요.' : '소개를 10자 이상 적어 주세요.') : '');
     validateAttachment();
     if (!form.reportValidity()) return;
-    if (localFile) {
-      feedback.textContent = '작성 내용을 확인했습니다. 로컬 미리보기이므로 전송·저장하지 않았습니다.';
-      feedback.dataset.state = 'preview';
-      feedback.hidden = false; feedback.focus(); return;
-    }
     const data = new FormData(form);
-    applicationId ||= crypto.randomUUID();
     const projects = purpose.value === 'partner' ? data.getAll('projects') : [];
-    const legacyProject = purpose.value === 'partner' ? data.get('brand') : '';
-    if (legacyProject && !projects.length) projects.push(legacyProject);
     const file = purpose.value === 'partner' ? data.get('attachment') : null;
-    const payload = {id:applicationId, purpose:purpose.value, name:String(data.get('name') || '').trim(), email:String(data.get('email') || '').trim(), brand:projects[0] || '', projects, message:String(data.get('message') || '').trim(), consent:data.get('consent')==='on', website:String(data.get('website') || ''), interests:data.getAll('interests'), profileUrl:String(data.get('profileUrl') || '').trim(), sourceContext, consentVersion:attachmentInput ? '2026-11-24' : '2026-11-23'};
-    submitting = true; applicationButton.disabled = true; applicationButton.textContent = '보내는 중…';
-    applicationButton.dataset.state = 'pending';
+    const selected = purpose.value === 'partner' ? ['partner'] : data.getAll('interests');
+    const payload = {purpose:purpose.value, name:String(data.get('name') || '').trim(), email:String(data.get('email') || '').trim(), phone:String(data.get('phone') || '').trim(), brand:projects[0] || '', projects, message:String(data.get('message') || '').trim(), consent:data.get('consent')==='on', website:String(data.get('website') || ''), interests:selected, profileUrls, sourceContext, consentVersion:'2026-11-24-v3'};
+    const interestLabels = {painting: '그림·전시', film: '영화·연기', writing: '글', lab: '실험실 모임'};
+    const rows = [
+      ['신청 분야', connections[payload.purpose].title],
+      ['이름', payload.name], ['이메일', payload.email], ['휴대폰 번호', payload.phone],
+      ['함께할 서비스', projects.join(', ')],
+      ['함께할 분야', selected.map(value => interestLabels[value]).filter(Boolean).join(', ')],
+      ['소개', payload.message], ['링크', profileUrls.join('\n')], ['첨부 파일', file?.name],
+    ];
+    reviewDetails.replaceChildren();
+    for (const [label, value] of rows) {
+      if (!value) continue;
+      const term = document.createElement('dt');
+      const detail = document.createElement('dd');
+      term.textContent = label;
+      detail.textContent = value;
+      reviewDetails.append(term, detail);
+    }
+    reviewedApplication = {payload, file};
+    fields.hidden = true;
+    review.hidden = false;
+    purpose.disabled = true;
+    feedback.hidden = true;
+    const heading = document.getElementById('application-review-title');
+    heading.focus();
+    heading.scrollIntoView({block:'nearest'});
+  });
+
+  confirmButton.addEventListener('click', async () => {
+    if (submitting || !reviewedApplication) return;
+    if (localFile) {
+      closeReview();
+      feedback.textContent = '신청 내용을 확인했어요. 실제 접수 후 확인하고 일주일 이내로 연락드릴게요. 로컬 미리보기에서는 전송되지 않습니다.';
+      feedback.dataset.state = 'preview';
+      feedback.hidden = false;
+      feedback.focus();
+      return;
+    }
+    const {payload, file} = reviewedApplication;
+    payload.id = applicationId ||= crypto.randomUUID();
+    submitting = true;
+    confirmButton.textContent = '보내는 중…';
+    confirmButton.dataset.state = 'pending';
     // Preserve exactly the submitted values while a request is pending.
-    const controls = [...form.elements, purpose];
-    const disabledBefore = controls.map(control => control.disabled);
+    const controls = new Set([...form.elements, confirmButton, editButton]);
+    const disabledBefore = [...controls].map(control => control.disabled);
     controls.forEach(control => control.disabled = true);
     try {
       if (file?.size) {
@@ -705,16 +805,20 @@
       const result = await response.json();
       if (result.error === 'INVALID_ATTACHMENT') throw new Error('첨부 파일 형식을 확인해 주세요. PDF, JPG, PNG 파일만 받을 수 있어요.');
       if (!response.ok || result.id !== applicationId) throw new Error(response.status === 429 ? '잠시 후 다시 신청해 주세요.' : '접수하지 못했습니다. 작성 내용은 그대로 있으니 다시 시도하거나 이메일로 보내 주세요.');
-      feedback.textContent = '소개를 잘 받았습니다. 함께할 일이 생기면 남겨주신 이메일로 연락드릴게요.';
+      feedback.textContent = payload.purpose === 'lab'
+        ? '신청을 접수했어요. 확인하고 일주일 이내로 연락드릴게요. 오프라인 모임 일정이 잡히면 남겨주신 이메일로 안내드릴게요.'
+        : '신청을 접수했어요. 확인하고 일주일 이내로 연락드릴게요.';
       feedback.dataset.state = 'success';
       form.reset(); applicationId = null;
     } catch (error) {
       feedback.dataset.state = 'error';
       feedback.textContent = /^(잠시|접수하지|첨부 파일)/.test(error.message || '') ? error.message : '접수 여부를 확인하지 못했습니다. 작성 내용은 그대로 있습니다. 다시 누르면 중복 없이 접수 여부를 확인합니다.';
     } finally {
-      controls.forEach((control,index) => control.disabled=disabledBefore[index]);
-      submitting=false; applicationButton.disabled=false; applicationButton.textContent=purpose.value==='connect'?'관심 남기기':'소개 남기기';
-      delete applicationButton.dataset.state;
+      [...controls].forEach((control,index) => control.disabled=disabledBefore[index]);
+      submitting = false;
+      closeReview();
+      confirmButton.textContent = '확인하고 신청하기';
+      delete confirmButton.dataset.state;
       feedback.hidden=false;feedback.focus({preventScroll:true});feedback.scrollIntoView({block:'nearest',behavior:motionPaused?'auto':'smooth'});
     }
   });

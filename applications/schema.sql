@@ -31,3 +31,9 @@ CREATE TABLE IF NOT EXISTS application_attachments (
   filename TEXT NOT NULL,
   content BLOB NOT NULL CHECK (length(content) BETWEEN 1 AND 1048576)
 );
+
+CREATE TABLE IF NOT EXISTS application_contacts (
+  application_id TEXT PRIMARY KEY REFERENCES applications(id) ON DELETE CASCADE,
+  phone TEXT NOT NULL DEFAULT '',
+  profile_urls TEXT NOT NULL DEFAULT '[]'
+);

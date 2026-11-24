@@ -15,18 +15,19 @@ export function escapeCsvCell(value) {
   if (/^[\s\uFEFF]*[=+\-@]/u.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
   return '"' + text.replace(/"/g, '""') + '"';
 }
+const profileLinks = item => item.profileUrls ?? (item.profileUrl ? [item.profileUrl] : []);
 export function visiblePeople(items, {search = '', interest = '', status = ''} = {}) {
   const query = search.trim().toLocaleLowerCase();
   return items.filter(item => {
     const selected = item.interests || [];
     const matchesInterest = !interest || (interest === 'legacy-art' ? item.purpose === 'art' && !selected.length : selected.includes(interest));
-    const text = [item.name, item.email, item.brand, item.message, item.ownerNote, item.profileUrl, purposeLabels[item.purpose], ...selected.map(value => interestLabels[value])].join(' ').toLocaleLowerCase();
+    const text = [item.name, item.email, item.phone, item.brand, item.message, item.ownerNote, ...profileLinks(item), purposeLabels[item.purpose], ...selected.map(value => interestLabels[value])].join(' ').toLocaleLowerCase();
     return matchesInterest && (!status || item.status === status) && (!query || text.includes(query));
   });
 }
 export function peopleCsv(items) {
-  const headers = ['이름', '이메일', '관심 분야', '관심 브랜드', '신청 목적', '하고 싶은 일', '소개 링크', '신청 위치', '연결 상태', '비공개 메모', '신청 시각', '동의 시각', '동의 문구 버전', '신청 ID'];
-  const rows = items.map(item => [item.name, item.email, (item.interests || []).map(value => interestLabels[value] || value).join(' / '), item.brand, purposeLabels[item.purpose] || item.purpose, item.message, item.profileUrl, item.sourceContext, statusLabels[item.status] || item.status, item.ownerNote, item.created_at, item.consent_at, item.consentVersion, item.id]);
+  const headers = ['이름', '이메일', '휴대폰 번호', '관심 분야', '관심 브랜드', '신청 목적', '하고 싶은 일', '소개 링크', '신청 위치', '연결 상태', '비공개 메모', '신청 시각', '동의 시각', '동의 문구 버전', '신청 ID'];
+  const rows = items.map(item => [item.name, item.email, item.phone, (item.interests || []).map(value => interestLabels[value] || value).join(' / '), item.brand, purposeLabels[item.purpose] || item.purpose, item.message, profileLinks(item).join('\n'), item.sourceContext, statusLabels[item.status] || item.status, item.ownerNote, item.created_at, item.consent_at, item.consentVersion, item.id]);
   return '\uFEFF' + [headers, ...rows].map(row => row.map(escapeCsvCell).join(',')).join('\r\n') + '\r\n';
 }
 
@@ -103,8 +104,13 @@ function initialize() {
     $('person-message').textContent = item.message;
     const links = document.createDocumentFragment();
     const email = node('a', item.email); email.href = 'mailto:' + encodeURIComponent(item.email); links.append(email);
-    const profile = safeProfileLink(item.profileUrl);
-    if (profile) { const link = node('a', '소개 링크 열기 ↗'); link.href = profile; link.target = '_blank'; link.rel = 'noopener noreferrer'; links.append(link); }
+    if (item.phone) links.append(node('span', item.phone));
+    for (const [index, value] of profileLinks(item).entries()) {
+      const profile = safeProfileLink(value);
+      if (!profile) continue;
+      const link = node('a', '소개 링크 ' + (index + 1) + ' ↗');
+      link.href = profile; link.target = '_blank'; link.rel = 'noopener noreferrer'; links.append(link);
+    }
     if (item.attachment) {
       const button = node('button', '첨부 내려받기 · ' + item.attachment.name, 'text-button');
       button.type = 'button';

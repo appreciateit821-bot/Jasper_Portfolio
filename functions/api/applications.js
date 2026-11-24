@@ -16,20 +16,22 @@ const validText = (value, min, max) => typeof value === 'string' && value.trim()
 const fallbackInterests = purpose => ['partner', 'lab'].includes(purpose) ? [purpose] : [];
 const selectApplication = `SELECT a.id,a.purpose,a.name,a.email,a.brand,a.message,a.consent_at,a.created_at,
   d.interests,d.profile_url,d.source_context,d.consent_version,d.status,d.owner_note,d.updated_at,
-  f.filename AS attachment_name,length(f.content) AS attachment_size
+  f.filename AS attachment_name,length(f.content) AS attachment_size,c.phone,c.profile_urls
   FROM applications a LEFT JOIN application_details d ON d.application_id=a.id
-  LEFT JOIN application_attachments f ON f.application_id=a.id`;
+  LEFT JOIN application_attachments f ON f.application_id=a.id
+  LEFT JOIN application_contacts c ON c.application_id=a.id`;
 
 function publicOwnerFields(row) {
   let selected = fallbackInterests(row.purpose);
   if (row.interests) {
     try { const parsed = JSON.parse(row.interests); if (Array.isArray(parsed)) selected = parsed.filter(value => interests.has(value)); } catch { /* Legacy values remain readable. */ }
   }
+  const profiles = row.profile_urls ? JSON.parse(row.profile_urls) : row.profile_url ? [row.profile_url] : [];
   return {
     id: row.id, purpose: row.purpose, name: row.name, email: row.email, brand: row.brand,
     projects: row.brand ? row.brand.split(projectSeparator) : [],
     message: row.message, consent_at: row.consent_at, created_at: row.created_at,
-    interests: selected, profileUrl: row.profile_url || '', sourceContext: row.source_context || '',
+    interests: selected, phone: row.phone || '', profileUrls: profiles, profileUrl: row.profile_url || '', sourceContext: row.source_context || '',
     consentVersion: row.consent_version || '', status: statuses.has(row.status) ? row.status : 'new',
     ownerNote: row.owner_note || '', updatedAt: row.updated_at || row.created_at,
     attachment: row.attachment_name ? {name: row.attachment_name, size: Number(row.attachment_size)} : null,
@@ -153,13 +155,28 @@ export async function onRequest({request, env}) {
     const selected = input?.interests === undefined ? fallbackInterests(input?.purpose) : input.interests;
     const projects = input?.projects === undefined ? (input?.brand ? [input.brand] : []) : input.projects;
     const profile = profileUrl(input?.profileUrl);
+    const reviewedForm = input?.consentVersion === '2026-11-24-v3';
+    const currentForm = reviewedForm || input?.consentVersion === '2026-11-24-v2';
+    const phone = input?.phone ?? '';
+    const needsPhone = input?.purpose === 'connect' || input?.purpose === 'partner' || (reviewedForm && input?.purpose === 'art');
+    const profiles = input?.profileUrls === undefined ? (profile ? [profile] : []) :
+      Array.isArray(input.profileUrls) && input.profileUrls.length <= 5 ? input.profileUrls.map(profileUrl) : null;
     if (!input || !uuid(input.id) || !purposes.has(input.purpose) || !validText(input.name, 1, 80) || /[\r\n\t]/.test(input.name)
       || !validText(input.email, 3, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)
-      || !validText(input.message, 10, 4000) || input.consent !== true || !brands.has(input.brand) || input.website
+      || !validText(input.message, currentForm && input.purpose === 'connect' ? 1 : 10, 4000) || input.consent !== true || !brands.has(input.brand) || input.website
       || !Array.isArray(projects) || projects.length > 4 || projects.some(value => !value || !brands.has(value))
       || (input.projects !== undefined && input.purpose !== 'partner' && projects.length)
       || !Array.isArray(selected) || selected.length > 5 || selected.some(value => !interests.has(value))
-      || profile === null || (input.sourceContext !== undefined && !validText(input.sourceContext, 0, 160))
+      || profile === null || !profiles || profiles.some(value => !value)
+      || !validText(phone, 0, 32) || (phone && (!/^\+?[0-9() -]+$/.test(phone) || !/^\d{7,15}$/.test(phone.replace(/\D/g, ''))))
+      || (currentForm && (
+        (needsPhone ? !phone : Boolean(phone))
+        || (input.purpose === 'partner' && (projects.length !== 1 || selected.length !== 1 || selected[0] !== 'partner'))
+        || (input.purpose === 'connect' && selected.length !== 0)
+        || (input.purpose === 'lab' && (selected.length !== 1 || selected[0] !== 'lab'))
+        || (input.purpose === 'art' && selected.some(value => value === 'partner' || value === 'lab'))
+      ))
+      || (input.sourceContext !== undefined && !validText(input.sourceContext, 0, 160))
       || (input.consentVersion !== undefined && (typeof input.consentVersion !== 'string' || !/^[a-zA-Z0-9._-]{1,40}$/.test(input.consentVersion)))) {
       return json({error: 'INVALID_APPLICATION'}, 400);
     }
@@ -186,9 +203,14 @@ export async function onRequest({request, env}) {
         AND NOT EXISTS (SELECT 1 FROM application_details d WHERE d.application_id=a.id)`)
         .bind(attachment.name, attachment.content, input.id, sender));
     }
+    if (currentForm || phone || input.profileUrls !== undefined) {
+      statements.push(env.FEEDBACK_DB.prepare(`INSERT INTO application_contacts (application_id,phone,profile_urls)
+        SELECT id,?,? FROM applications WHERE id=? AND sender_hash=? ON CONFLICT(application_id) DO NOTHING`)
+        .bind(phone, JSON.stringify([...new Set(profiles)]), input.id, sender));
+    }
     statements.push(env.FEEDBACK_DB.prepare(`INSERT INTO application_details (application_id,interests,profile_url,source_context,consent_version,updated_at)
       SELECT id,?,?,?,?,? FROM applications WHERE id=? AND sender_hash=? ON CONFLICT(application_id) DO NOTHING`)
-      .bind(JSON.stringify([...new Set(selected)]), profile, (input.sourceContext || '').trim(), input.consentVersion || '', now, input.id, sender));
+      .bind(JSON.stringify([...new Set(selected)]), profiles[0] || '', (input.sourceContext || '').trim(), input.consentVersion || '', now, input.id, sender));
     const results = await env.FEEDBACK_DB.batch(statements);
     if (results[0].meta.changes === 1) return json({id: input.id}, 201);
     const retry = await env.FEEDBACK_DB.prepare('SELECT id,sender_hash FROM applications WHERE id=?').bind(input.id).first();
