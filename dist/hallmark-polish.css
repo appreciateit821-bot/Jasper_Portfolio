@@ -317,24 +317,24 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
  --connection-tint:var(--hm-disabled-fill);
  --connection-ease:cubic-bezier(.22,1,.36,1);
  --connection-chip-ease:cubic-bezier(.34,1.56,.64,1);
- --object-dark-face:linear-gradient(#4b4943,#22221f 72%);
- --object-dark-shadow:inset 0 2px 1px #ffffff52,inset 0 -3px 5px #0008,0 8px 13px #33312b40;
- --object-dark-pressed:inset 0 1px 1px #ffffff40,inset 0 -3px 5px #0008,0 3px 6px #33312b38;
- --object-light-face:linear-gradient(#fff,#eeece7 75%);
- --object-light-shadow:inset 0 1px 1px #fff,inset 0 -2px 3px #18161312,0 3px 6px #18161316;
+ --step-dark-face:#262625;
+ --step-dark-shadow:0 5px 0 #0c0c0c,0 10px 12px #17151230;
+ --step-dark-pressed:0 1px 0 #0c0c0c,0 3px 6px #17151224;
+ --step-light-face:#f8f7f4;
+ --step-light-shadow:0 3px 0 #b9b5ab,0 5px 8px #17151220;
 }
 .intro-connection{grid-column:1;grid-row:3;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;align-self:end}
 .intro-connection>.text-link{display:inline-flex;align-items:center;min-height:48px;font-size:14px}
 .connection-invitation{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin:0 0 56px}
 .connection-invitation p{font-size:15px;line-height:1.7;color:var(--connection-muted);margin:0}
 
-/* Rounded object, selected from the portfolio button studies. */
+/* Low step, selected from the portfolio button studies. */
 :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit){
  position:relative;display:inline-flex;align-items:center;justify-content:center;
  min-height:var(--connection-button-height,52px);max-width:100%;padding:12px 50px 12px 23px;
- border:1px solid #55534d;border-radius:40px;
- background:var(--object-dark-face);color:#fff;
- box-shadow:var(--object-dark-shadow);
+ border:1px solid #141414;border-radius:8px;
+ background:var(--step-dark-face);color:#fff;
+ box-shadow:var(--step-dark-shadow);
  font:inherit;font-size:var(--connection-button-font,15px);font-weight:500;line-height:1.5;letter-spacing:-.015em;
  text-align:center;text-decoration:none;cursor:pointer;isolation:isolate;
  transition:transform 180ms var(--connection-ease),box-shadow 180ms var(--connection-ease);
@@ -350,7 +350,7 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
 @media(hover:hover) and (pointer:fine){
  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):hover:not(:active){transform:translateY(-2px)}
 }
-:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):active{transform:translateY(2px) scale(.98);box-shadow:var(--object-dark-pressed);opacity:1}
+:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):active{transform:translateY(4px);box-shadow:var(--step-dark-pressed);opacity:1}
 :is(.selected-connect,.art-collaborate){--connection-button-height:48px;--connection-button-font:14px}
 #art-dialog[data-kind=writing] .art-collaborate{display:none}
 #connect-form .form-submit{--connection-button-height:56px;--connection-button-font:16px;width:100%;margin-top:28px}
@@ -593,12 +593,12 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
   #next .together-paths article { border-bottom:0; }
 }
 
-/* A lighter finish gives utility controls the same shape and depth. */
+/* Smaller controls use a shallower base. */
 :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
     .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
     .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled) {
-  border-radius: 40px;
-  box-shadow: var(--object-light-shadow);
+  border-radius: var(--step-radius, 8px);
+  box-shadow: var(--step-light-shadow);
   transition: transform 180ms var(--connection-ease), box-shadow 180ms var(--connection-ease);
 }
 
@@ -606,22 +606,24 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
     .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
     .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled,[aria-pressed="true"]) {
   color: #171716;
-  background: var(--object-light-face);
+  background: var(--step-light-face);
   border-color: #c5c2b9;
 }
 
 :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
     .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
     .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled):active {
-  transform: translateY(1px) scale(.98);
-  box-shadow: inset 0 1px 3px #18161324, 0 1px 2px #18161316;
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b9b5ab, 0 2px 4px #1715121a;
 }
 
+:is(.rail-controls button,.career-detail summary) { --step-radius: 50%; }
+
 :is(.wall-expand,.acting-unified .photo-expand) {
-  background: var(--object-light-face);
+  background: var(--step-light-face);
   color: #171716;
   border: 1px solid #c5c2b9;
-  box-shadow: var(--object-light-shadow);
+  box-shadow: var(--step-light-shadow);
 }
 
 
