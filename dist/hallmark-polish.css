@@ -64,7 +64,7 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
 /* Owner feedback 2026-11-14. Local design decisions, not an imported reference. */
 #motion-toggle{width:44px;min-height:44px;font-size:20px;display:grid;place-items:center}
 .opening-name{bottom:100px;pointer-events:none}
-.opening .editorial-slide{animation:none!important;opacity:0!important;transition:opacity 900ms ease;object-position:center 32%}
+.opening .editorial-slide{animation:none!important;opacity:0!important;transition:opacity 250ms ease;object-position:center 32%}
 .opening .editorial-slide.is-active{opacity:1!important}
 .hero-selector{position:absolute;z-index:5;bottom:28px;right:var(--studio-gutter,28px);display:flex;gap:8px;color:#fff}
 .hero-selector button{color:inherit;background:transparent;border:0;border-bottom:1px solid #ffffff66;min-width:48px;min-height:48px;font-size:13px;cursor:pointer}

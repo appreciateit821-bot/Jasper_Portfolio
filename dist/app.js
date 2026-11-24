@@ -26,36 +26,52 @@
   motionButton?.addEventListener('click', () => setMotion(!motionPaused));
   reducedMotion.addEventListener('change', event => setMotion(event.matches));
 
-  // Cinema cover: still → painting → profile, with a fresh selection per visit.
+  // Cinema cover: still → painting → profile, with a fresh selection each round.
   const heroSlides = [...document.querySelectorAll('.editorial-slide')];
   const heroChoices = [...document.querySelectorAll('[data-hero-slide]')];
   const heroFrame = document.getElementById('opening-frame');
   let heroPhotos = {};
   try { heroPhotos = JSON.parse(document.getElementById('acting-photos-data')?.textContent || '{}'); } catch (_) { /* Keep the reviewed fallback images. */ }
   const heroPools = {...heroPhotos, painting: (window.JASPER_ARTWORKS || []).filter(work => work.kind === 'painting')};
-  heroSlides.forEach(slide => {
+  const pendingHeroImages = new Map();
+  function applyHeroImage(slide, work, url) {
+    slide.src = url;
+    slide.alt = work.alt || '';
+    slide.width = work.width;
+    slide.height = work.height;
+    slide.dataset.heroImage = work.id;
+    try { sessionStorage.setItem('jasper:cover:' + slide.dataset.heroKind, work.id); } catch (_) { /* Storage is optional. */ }
+  }
+
+  function prepareHeroImage(slide, initial = false) {
+    if (pendingHeroImages.has(slide)) return;
     const kind = slide.dataset.heroKind;
     const pool = heroPools[kind] || [];
     if (!pool.length) return;
-    let previous;
-    try { previous = sessionStorage.getItem('jasper:cover:' + kind); } catch (_) { /* File previews may not allow storage. */ }
+    let previous = slide.dataset.heroImage;
+    if (!previous) {
+      try { previous = sessionStorage.getItem('jasper:cover:' + kind); } catch (_) { /* Storage is optional. */ }
+    }
     const candidates = pool.length > 1 ? pool.filter(work => work.id !== previous) : pool;
     const work = candidates[Math.floor(Math.random() * candidates.length)];
     const url = work.presentationImage || work.preview || work.image;
-    if (!url) return;
+    if (!url || (!initial && work.id === previous)) return;
     const preview = new Image();
+    const candidate = {work, url, ready: false};
+    pendingHeroImages.set(slide, candidate);
     preview.onload = async () => {
       try { await preview.decode?.(); } catch (_) { /* A loaded image can still be displayed. */ }
-      slide.src = url;
-      slide.alt = work.alt || '';
-      slide.width = work.width;
-      slide.height = work.height;
-      slide.dataset.heroImage = work.id;
-      try { sessionStorage.setItem('jasper:cover:' + kind, work.id); } catch (_) { /* Random selection still works without storage. */ }
+      candidate.ready = true;
+      if (initial) {
+        applyHeroImage(slide, work, url);
+        pendingHeroImages.delete(slide);
+      }
     };
-    // Keep the valid fallback if the selected image fails to load.
+    preview.onerror = () => pendingHeroImages.delete(slide);
     preview.src = url;
-  });
+  }
+
+  heroSlides.forEach(slide => prepareHeroImage(slide, true));
   let heroTimer;
   let heroIndex = 0;
   let heroVisible = true;
@@ -71,9 +87,18 @@
     stopHero();
     if (motionPaused || document.hidden || !heroVisible || heroFocused || heroSlides.length < 2) return;
     heroTimer = setTimeout(() => {
-      selectHero((heroIndex + 1) % heroSlides.length);
+      const leaving = heroSlides[heroIndex];
+      const next = (heroIndex + 1) % heroSlides.length;
+      const arriving = heroSlides[next];
+      const candidate = pendingHeroImages.get(arriving);
+      if (candidate?.ready) {
+        applyHeroImage(arriving, candidate.work, candidate.url);
+        pendingHeroImages.delete(arriving);
+      }
+      selectHero(next);
+      prepareHeroImage(leaving);
       scheduleHero();
-    }, 5000);
+    }, 1000);
   }
   heroChoices.forEach(button => button.addEventListener('click', () => { selectHero(Number(button.dataset.heroSlide)); scheduleHero(); }));
   heroFrame?.addEventListener('focusin', () => { heroFocused = true; stopHero(); });
