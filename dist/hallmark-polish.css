@@ -317,27 +317,29 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
  --connection-tint:var(--hm-disabled-fill);
  --connection-ease:cubic-bezier(.22,1,.36,1);
  --connection-chip-ease:cubic-bezier(.34,1.56,.64,1);
- --step-dark-face:#262625;
- --step-dark-shadow:0 5px 0 #0c0c0c,0 10px 12px #17151230;
- --step-dark-pressed:0 1px 0 #0c0c0c,0 3px 6px #17151224;
- --step-light-face:#f8f7f4;
- --step-light-shadow:0 3px 0 #b9b5ab,0 5px 8px #17151220;
+
 }
 .intro-connection{grid-column:1;grid-row:3;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;align-self:end}
 .intro-connection>.text-link{display:inline-flex;align-items:center;min-height:48px;font-size:14px}
 .connection-invitation{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin:0 0 56px}
 .connection-invitation p{font-size:15px;line-height:1.7;color:var(--connection-muted);margin:0}
 
-/* Low step, selected from the portfolio button studies. */
+/* Ink sweep, selected from the portfolio button studies. */
 :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit){
  position:relative;display:inline-flex;align-items:center;justify-content:center;
  min-height:var(--connection-button-height,52px);max-width:100%;padding:12px 50px 12px 23px;
- border:1px solid #141414;border-radius:8px;
- background:var(--step-dark-face);color:#fff;
- box-shadow:var(--step-dark-shadow);
+ border:0;border-bottom:2px solid #171716;border-radius:0;
+ background:#fbfaf7;color:#171716;
+ box-shadow:none;overflow:hidden;text-shadow:none;
  font:inherit;font-size:var(--connection-button-font,15px);font-weight:500;line-height:1.5;letter-spacing:-.015em;
  text-align:center;text-decoration:none;cursor:pointer;isolation:isolate;
- transition:transform 180ms var(--connection-ease),box-shadow 180ms var(--connection-ease);
+
+}
+:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::before{
+ content:"";position:absolute;z-index:1;inset:0;pointer-events:none;
+ background:#fff;mix-blend-mode:difference;
+ transform:scaleX(var(--ink-fill,0));transform-origin:left;
+ transition:transform 230ms var(--connection-ease);
 }
 :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::after{
  content:"↗" / "";position:absolute;inset-inline-end:18px;top:50%;transform:translateY(-50%);
@@ -348,9 +350,9 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
 :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):focus-visible{outline:2px solid var(--hm-ink);outline-offset:4px}
 .art-dialog.dark .art-collaborate:focus-visible{outline-color:var(--hm-paper)}
 @media(hover:hover) and (pointer:fine){
- :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):hover:not(:active){transform:translateY(-2px)}
+ :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):hover{--ink-fill:1}
 }
-:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):active{transform:translateY(4px);box-shadow:var(--step-dark-pressed);opacity:1}
+:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):is(:active,:focus-visible){--ink-fill:1;opacity:1}
 :is(.selected-connect,.art-collaborate){--connection-button-height:48px;--connection-button-font:14px}
 #art-dialog[data-kind=writing] .art-collaborate{display:none}
 #connect-form .form-submit{--connection-button-height:56px;--connection-button-font:16px;width:100%;margin-top:28px}
@@ -493,21 +495,19 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
 }
 .contact-footer {
   margin-top: clamp(24px, 4vw, 56px);
-  padding-block: 0 env(safe-area-inset-bottom, 0px);
-  background: #080808;
-  color: #fff;
+  padding-block: 6px max(6px, env(safe-area-inset-bottom, 0px));
+  background: #111110;
+  color: #c9c8c2;
 }
 
 .footer-contact {
-  display: grid;
-  min-height: 44px;
-  align-content: center;
+  border-top: 1px solid #44433f;
   font-style: normal;
 }
 
 .footer-contact p {
   margin: 0;
-  font-size: clamp(9px, 3vw, 15px);
+  font-size: clamp(9px, 3vw, 14px);
   line-height: 1.5;
   letter-spacing: -.015em;
   white-space: nowrap;
@@ -517,11 +517,14 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: #dadada;
-  text-underline-offset: 3px;
+  color: #faf9f5;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: #8c8a83;
+  text-underline-offset: .28em;
 }
 
-.footer-contact a:is(:hover, :focus-visible) { color: #fff; text-decoration: underline; }
+.footer-contact a:is(:hover, :focus-visible) { text-decoration-color: currentColor; }
 
 .venture-cover.has-logo img { object-fit: contain; }
 
@@ -593,58 +596,40 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
   #next .together-paths article { border-bottom:0; }
 }
 
-/* Smaller controls use a shallower base. */
+/* Flat utility controls keep a separate visual hierarchy. */
 :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
     .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
     .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled) {
-  border-radius: var(--step-radius, 8px);
-  box-shadow: var(--step-light-shadow);
-  transition: transform 180ms var(--connection-ease), box-shadow 180ms var(--connection-ease);
+  border-radius: var(--utility-radius, 4px);
+  box-shadow: none;
 }
 
 :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
     .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
     .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled,[aria-pressed="true"]) {
   color: #171716;
-  background: var(--step-light-face);
+  background: #f8f7f4;
   border-color: #c5c2b9;
 }
 
 :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
     .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
-    .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled):active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #b9b5ab, 0 2px 4px #1715121a;
+    .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled,[aria-pressed="true"]):active {
+  background: #e7e4dd;
 }
 
-:is(.rail-controls button,.career-detail summary) { --step-radius: 50%; }
+:is(.rail-controls button,.career-detail summary) { --utility-radius: 50%; }
 
 :is(.wall-expand,.acting-unified .photo-expand) {
-  background: var(--step-light-face);
+  background: #f8f7f4;
   color: #171716;
   border: 1px solid #c5c2b9;
-  box-shadow: var(--step-light-shadow);
+  box-shadow: none;
 }
 
-
-.motion-paused :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
-    .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
-    .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled):active,
-.motion-paused :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):is(:hover,:active) {
-  transform: none;
+@media (prefers-reduced-motion:reduce) {
+  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::before{transition:none}
 }
-
-@media (prefers-reduced-motion: reduce) {
-  :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
-    .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
-    .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled),
-  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled) {
-    transition: none;
-  }
-  :is(.intro-paths a,.medium-nav a,.rail-controls button,.dialog-head .close-button,
-    .art-pagination button,.portrait-controls button,.reading-tools button,.reading-end button,.reading-back,
-    .archive-filters button,.archive-views button,.career-detail summary,#art-zoom):not(:disabled):active,
-  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):is(:hover,:active) {
-    transform: none;
-  }
+@media (forced-colors:active) {
+  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::before{display:none}
 }
