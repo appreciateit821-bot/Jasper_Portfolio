@@ -317,48 +317,44 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
  --connection-tint:var(--hm-disabled-fill);
  --connection-ease:cubic-bezier(.22,1,.36,1);
  --connection-chip-ease:cubic-bezier(.34,1.56,.64,1);
-
+ --connection-cta:#30302e;
+ --connection-cta-active:#484846;
 }
 .intro-connection{grid-column:1;grid-row:3;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;align-self:end}
 .intro-connection>.text-link{display:inline-flex;align-items:center;min-height:48px;font-size:14px}
 .connection-invitation{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;margin:0 0 56px}
 .connection-invitation p{font-size:15px;line-height:1.7;color:var(--connection-muted);margin:0}
 
-/* Ink sweep, selected from the portfolio button studies. */
+/* Original round plus, with a softer charcoal face. */
 :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit){
  position:relative;display:inline-flex;align-items:center;justify-content:center;
- min-height:var(--connection-button-height,52px);max-width:100%;padding:12px 50px 12px 23px;
- border:0;border-bottom:2px solid #171716;border-radius:0;
- background:#fbfaf7;color:#171716;
- box-shadow:none;overflow:hidden;text-shadow:none;
+ min-height:var(--connection-button-height,52px);max-width:100%;padding:10px 57px 10px 18px;
+ border:1px solid transparent;border-radius:100px;
+ background:var(--connection-cta);color:#fff;
+ box-shadow:none;text-shadow:none;
  font:inherit;font-size:var(--connection-button-font,15px);font-weight:500;line-height:1.5;letter-spacing:-.015em;
- text-align:center;text-decoration:none;cursor:pointer;isolation:isolate;
-
-}
-:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::before{
- content:"";position:absolute;z-index:1;inset:0;pointer-events:none;
- background:#fff;mix-blend-mode:difference;
- transform:scaleX(var(--ink-fill,0));transform-origin:left;
- transition:transform 230ms var(--connection-ease);
+ text-align:center;text-decoration:none;cursor:pointer;touch-action:manipulation;
 }
 :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::after{
- content:"↗" / "";position:absolute;inset-inline-end:18px;top:50%;transform:translateY(-50%);
- font-size:18px;line-height:1;pointer-events:none;
+ content:"";position:absolute;inset-inline-end:7px;top:50%;transform:translateY(-50%);
+ width:36px;height:36px;border-radius:50%;pointer-events:none;
+ background:linear-gradient(#30302e,#30302e) center / 12px 1px no-repeat,
+  linear-gradient(#30302e,#30302e) center / 1px 12px no-repeat,#fff;
 }
 #brands .venture-join>span[aria-hidden=true],#venture-dialog .venture-partner>span[aria-hidden=true],.art-collaborate>span[aria-hidden=true]{display:none}
 #brands .venture-join>span:not([aria-hidden]),#venture-dialog .venture-partner>span:not([aria-hidden]){font-size:inherit;transform:none;transition:none}
 :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):focus-visible{outline:2px solid var(--hm-ink);outline-offset:4px}
 .art-dialog.dark .art-collaborate:focus-visible{outline-color:var(--hm-paper)}
 @media(hover:hover) and (pointer:fine){
- :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):hover{--ink-fill:1}
+ :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):hover{background:#3d3d3b}
 }
-:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):is(:active,:focus-visible){--ink-fill:1;opacity:1}
+:is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):active{background:var(--connection-cta-active);opacity:1}
 :is(.selected-connect,.art-collaborate){--connection-button-height:48px;--connection-button-font:14px}
 #art-dialog[data-kind=writing] .art-collaborate{display:none}
 #connect-form .form-submit{--connection-button-height:56px;--connection-button-font:16px;width:100%;margin-top:28px}
 #connect-form .form-submit:disabled{cursor:wait;opacity:.6}
 #connect-form .form-submit[data-state=pending]::after{
- content:"";width:18px;height:18px;inset-inline-end:17px;
+ content:"";width:18px;height:18px;inset-inline-end:17px;background:none;
  border:1.5px solid currentColor;border-radius:50%;border-inline-end-color:transparent;
  animation:connection-sending 800ms linear infinite;
 }
@@ -460,7 +456,6 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
 .art-dialog[data-kind=writing] #art-type{font-size:14px;letter-spacing:0;text-transform:none;line-height:1.6}
 
 @media(hover:hover) and (pointer:fine){
- :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit):not(:disabled):hover::after{width:46px}
  #connect-form .connection-interests label:not(:has(:disabled)):hover{border-color:var(--hm-ink);transform:translateY(-1px)}
 }
 @media(max-width:760px){
@@ -627,9 +622,7 @@ button:not(:disabled):active{filter:none}button:disabled{cursor:not-allowed;back
   box-shadow: none;
 }
 
-@media (prefers-reduced-motion:reduce) {
-  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::before{transition:none}
-}
 @media (forced-colors:active) {
-  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::before{display:none}
+  :is(.connection-primary,#brands .venture-join,#venture-dialog .venture-partner,.next-action,#next .about-chapters [data-connect],.selected-connect,.art-collaborate,#connect-form .form-submit)::after{content:"+" / "";display:grid;place-items:center;border:1px solid currentColor}
+  #connect-form .form-submit[data-state=pending]::after{content:""}
 }
